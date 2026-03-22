@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PT">
+<meta name="theme-color" content="#0a0a0a">
+<title>Personal Trainer</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.9em%27 font-size=%2790%27>&#x1F4AA;</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0a;--card:#141414;--card2:#1a1a1a;--border:#252525;--text:#e8e8e8;--muted:#666;--accent:#ff3e00;--accent2:#ff6b3d;--green:#00e676;--yellow:#ffd600;--blue:#40c4ff;--done-bg:#0d1a0d;--done-text:#2a5a2a}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{font-family:'IBM Plex Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;padding:0;overflow-x:hidden}
+#app{max-width:500px;margin:0 auto;padding:16px;padding-top:max(16px,env(safe-area-inset-top));padding-bottom:max(140px,calc(env(safe-area-inset-bottom)+140px));min-height:100vh}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:70vh;gap:16px}
+.title{font-family:'Oswald',sans-serif;font-size:28px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:var(--accent)}
+.btn{padding:12px 24px;border-radius:10px;border:2px solid var(--border);background:var(--card);color:var(--text);font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{transform:scale(.95)}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-size:18px;padding:16px 40px}.btn.green{background:var(--green);border-color:var(--green);color:#000}.btn.danger{border-color:#600;color:#f44}.btn.blue{background:var(--blue);border-color:var(--blue);color:#000}.btn.full{width:100%}.btn.sm{padding:8px 14px;font-size:11px}
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--accent)}.hdr-title{font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--accent)}.hdr-sub{font-size:10px;color:var(--muted);margin-top:2px}.hdr-back{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px 8px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px}.label{font-family:'Oswald',sans-serif;font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;text-transform:uppercase}
+.input{width:100%;padding:10px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:13px;outline:none}.input:focus{border-color:var(--accent)}.input-sm{padding:8px 10px;font-size:12px}.input-label{font-size:10px;color:var(--muted);margin-bottom:4px;display:block}.input-group{margin-bottom:10px}.narrow{max-width:55px}
+.tabs{display:flex;gap:2px;margin-bottom:14px;background:var(--card);border-radius:8px;padding:3px;border:1px solid var(--border)}.tab{flex:1;padding:8px;text-align:center;font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);cursor:pointer;border-radius:6px;border:none;background:none}.tab.active{background:var(--accent);color:#fff}
+.prog-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:10px;cursor:pointer;transition:all .15s;position:relative}.prog-card:active{transform:scale(.98);border-color:var(--accent)}.prog-card-name{font-family:'Oswald',sans-serif;font-size:20px;font-weight:600;color:var(--text);margin-bottom:4px;padding-right:100px}.prog-card-info{font-size:12px;color:var(--muted)}.prog-card-tag{display:inline-block;font-size:10px;padding:3px 8px;border-radius:4px;background:var(--card2);color:var(--muted);border:1px solid var(--border);margin-right:4px;margin-top:6px}.prog-card-actions{position:absolute;top:14px;right:14px;display:flex;gap:6px}
+.abtn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:14px;padding:8px 12px;cursor:pointer;font-family:'IBM Plex Mono',monospace;min-width:40px;min-height:40px;display:flex;align-items:center;justify-content:center}.abtn:active{transform:scale(.9);border-color:var(--text)}.abtn.del{color:#800;border-color:#400}
+.hist-item{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--card);border-radius:6px;margin-bottom:4px;font-size:11px;border:1px solid var(--border)}
+.exi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:4px}.exi-name{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;color:var(--text)}.exi-cat{font-size:10px;color:var(--muted);margin-top:2px}.exi-params{display:flex;gap:5px;margin-top:8px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--muted)}.exi-params label{white-space:nowrap}.exi-actions{display:flex;gap:6px;margin-top:8px;justify-content:flex-end}
+.insert-btn{width:100%;padding:6px;margin:2px 0;border:1px dashed var(--border);border-radius:6px;background:transparent;color:var(--muted);font-size:11px;font-family:'IBM Plex Mono',monospace;cursor:pointer;transition:all .15s;text-align:center}.insert-btn:active{border-color:var(--green);color:var(--green);background:rgba(0,230,118,.05)}
+.exi-side{display:flex;gap:3px;margin-top:8px;flex-wrap:wrap}.side-btn{padding:6px 10px;border-radius:5px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:11px;cursor:pointer;font-family:'IBM Plex Mono',monospace;min-height:34px}.side-btn.active{border-color:var(--accent);color:var(--accent);background:#1a0800}
+.mode-toggle{display:flex;gap:3px;margin-top:6px}.mode-btn{padding:6px 14px;border-radius:5px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:11px;cursor:pointer;font-family:'IBM Plex Mono',monospace;min-height:34px}.mode-btn.active{border-color:var(--blue);color:var(--blue);background:#001a2a}
+.lib-cat{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;color:var(--accent);padding:10px 0 6px;border-top:1px solid var(--border);margin-top:6px;letter-spacing:1px;text-transform:uppercase;cursor:pointer}.lib-cat:first-child{border-top:none;margin-top:0}
+.lib-item{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;margin:4px 0;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:13px}.lib-add{color:var(--green);font-size:28px;font-weight:700;padding:0;border:2px solid var(--green);border-radius:10px;background:rgba(0,230,118,.08);transition:all .12s;width:56px;height:56px;min-width:56px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:'Oswald',sans-serif}.lib-add:active{transform:scale(.85);background:rgba(0,230,118,.3)}
+.staging{background:var(--card);border:2px solid var(--green);border-radius:12px;padding:16px;margin:8px 0 12px;animation:stageIn .2s ease}
+@keyframes stageIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.staging-title{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;color:var(--green);margin-bottom:8px}
+.staging-row{display:flex;gap:4px;margin:6px 0;align-items:center;flex-wrap:wrap;font-size:10px;color:var(--muted)}
+.staging-row label{white-space:nowrap}
+.pos-select{display:flex;align-items:center;gap:6px;margin:8px 0;font-size:11px;color:var(--muted);flex-wrap:wrap}
+.pos-btn{padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:10px;cursor:pointer;font-family:'IBM Plex Mono',monospace}.pos-btn.active{border-color:var(--green);color:var(--green);background:#001a0d}
+.prep-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:13px}.prep-weight{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;color:var(--blue)}.prep-count{font-size:11px;color:var(--muted)}
+.w-progress{display:flex;gap:3px;margin:0 0 8px}.w-dot{flex:1;height:4px;border-radius:2px;background:var(--card2)}.w-dot.done{background:var(--green)}.w-dot.current{background:var(--accent)}
+.w-total{text-align:center;font-size:11px;color:var(--muted);margin-bottom:16px;font-variant-numeric:tabular-nums}
+.w-phase{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase;text-align:center;margin-bottom:4px}.w-phase.work{color:var(--accent)}.w-phase.rest{color:var(--green)}
+.w-name{font-family:'Oswald',sans-serif;font-size:34px;font-weight:700;color:#fff;text-align:center;margin:8px 0 4px;line-height:1.1}.w-detail{font-size:11px;color:var(--muted);text-align:center;margin-bottom:4px}.w-weight{font-size:13px;color:var(--blue);text-align:center;margin-bottom:12px;font-weight:600}
+.w-ring{width:200px;height:200px;margin:0 auto;position:relative;display:flex;align-items:center;justify-content:center}.w-ring svg{position:absolute;top:0;left:0;transform:rotate(-90deg)}.w-ring-time{font-family:'Oswald',sans-serif;font-size:64px;font-weight:700;font-variant-numeric:tabular-nums;z-index:1}.w-ring-time.warn{color:var(--yellow)}
+.w-timer-rest{font-family:'Oswald',sans-serif;font-size:72px;font-weight:700;text-align:center;color:var(--green);font-variant-numeric:tabular-nums;margin:20px 0}
+.w-next{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-top:16px;text-align:center}.w-next-label{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}.w-next-name{font-family:'Oswald',sans-serif;font-size:18px;color:var(--text)}.w-next-weight{font-size:11px;color:var(--blue);margin-top:2px}
+.w-reps{text-align:center;margin:20px 0}.w-reps-count{font-family:'Oswald',sans-serif;font-size:80px;font-weight:700;color:var(--accent)}.w-reps-label{font-size:12px;color:var(--muted);margin-top:4px}
+.stat-row{display:flex;gap:8px;margin-bottom:12px}.stat-card{flex:1;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}.stat-val{font-family:'Oswald',sans-serif;font-size:24px;font-weight:600;color:var(--accent)}.stat-label{font-size:9px;color:var(--muted);margin-top:2px}
+.bottom{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(transparent,var(--bg) 25%);padding:16px 16px max(16px,env(safe-area-inset-bottom));display:flex;justify-content:center;gap:10px;z-index:20}
+#lockscreen{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:100;touch-action:none;user-select:none;-webkit-user-select:none}
+.lock-info{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;opacity:.3}
+.lock-time{font-family:'Oswald',sans-serif;font-size:48px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+.lock-name{font-size:11px;color:#888;margin-top:4px;max-width:250px}
+.lock-mode{font-size:10px;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:2px}
+.lock-slider{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);width:280px;text-align:center}
+.lock-track{width:100%;height:56px;border-radius:28px;background:#111;border:1px solid #333;position:relative;overflow:hidden}
+.lock-thumb{position:absolute;left:4px;top:4px;width:48px;height:48px;border-radius:24px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;touch-action:none;cursor:grab;transition:left 0.1s;z-index:2}
+.lock-thumb.dragging{transition:none}
+.lock-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#444;pointer-events:none;z-index:1}
+.lock-hint{font-size:10px;color:#333;margin-top:12px}
+
+/* RUNNING */
+
+.phase-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:6px;position:relative}
+.phase-name{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;color:var(--text)}.phase-info{font-size:10px;color:var(--muted);margin-top:2px}.phase-pace{font-size:11px;color:var(--blue);margin-top:2px}
+.phase-actions{display:flex;gap:6px;margin-top:6px;justify-content:flex-end}
+.repeat-card{background:#0d1520;border:2px solid var(--blue);border-radius:12px;padding:12px;margin:8px 0}
+.repeat-label{font-family:'Oswald',sans-serif;font-size:12px;color:var(--blue);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.phase-active{border-color:var(--accent);background:#1a0800}
+.phase-done{border-color:var(--green);opacity:.6}
+.run-phase-indicator{display:flex;gap:3px;margin:0 0 8px;flex-wrap:wrap}.run-phase-dot{width:8px;height:8px;border-radius:4px;background:var(--card2)}.run-phase-dot.done{background:var(--green)}.run-phase-dot.current{background:var(--accent)}.run-phase-dot.rest{background:var(--blue)}
+.target-pace-display{font-family:'Oswald',sans-serif;font-size:16px;color:var(--yellow);text-align:center;margin:4px 0}
+.gps-status{padding:16px;border-radius:12px;text-align:center;margin:12px 0;font-size:13px}
+.gps-status.ok{background:#0d1a0d;border:1px solid var(--green);color:var(--green)}
+.gps-status.waiting{background:#1a1a00;border:1px solid var(--yellow);color:var(--yellow)}
+.gps-status.error{background:#1a0d0d;border:1px solid #f44;color:#f44}
+
+.run-stat{text-align:center;margin:8px 0}.run-stat-val{font-family:'Oswald',sans-serif;font-size:56px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1}.run-stat-unit{font-size:12px;color:var(--muted);margin-top:2px}.run-stat-label{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:4px}
+.run-stat-sm .run-stat-val{font-size:32px}
+.run-stats-row{display:flex;gap:8px;margin:12px 0}.run-stats-row>div{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 8px}
+.run-prog{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:10px;cursor:pointer;transition:all .15s}.run-prog:active{transform:scale(.98);border-color:var(--accent)}.run-prog-name{font-family:'Oswald',sans-serif;font-size:18px;font-weight:600;color:var(--text)}.run-prog-desc{font-size:11px;color:var(--muted);margin-top:4px}.run-prog-tag{display:inline-block;font-size:9px;padding:2px 8px;border-radius:4px;background:var(--card2);color:var(--blue);border:1px solid var(--blue);margin-top:6px}
+.run-prog-actions{display:flex;gap:6px;margin-top:8px;justify-content:flex-end}
+.mode-card{background:var(--card);border:2px solid var(--border);border-radius:16px;padding:24px 20px;cursor:pointer;text-align:center;transition:all .15s;flex:1}.mode-card:active{transform:scale(.96);border-color:var(--accent)}.mode-card-icon{font-size:48px;margin-bottom:8px}.mode-card-title{font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:2px}
+.cooper-bar{width:100%;height:8px;border-radius:4px;background:var(--card2);margin:8px 0;overflow:hidden}.cooper-fill{height:100%;border-radius:4px;transition:width .5s}
+.gps-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}.gps-dot.ok{background:var(--green)}.gps-dot.wait{background:var(--yellow);animation:gpsBlink 1s infinite}
+@keyframes gpsBlink{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+<div id="lockscreen">
+<div class="lock-info"><div class="lock-mode" id="lock-mode"></div><div class="lock-time" id="lock-time"></div><div class="lock-name" id="lock-name"></div></div>
+<div class="lock-slider"><div class="lock-track"><div class="lock-label">Liu&apos;uta avataksesi &#x279C;</div><div class="lock-thumb" id="lock-thumb">&#x1F513;</div></div><div class="lock-hint">Laske kirkkaus minimiin</div></div>
+</div>
+<div id="app"></div>
+<div class="bottom" id="btm" style="display:none"></div>
+<script>
+(function(){
+'use strict';
+var mem={};
+var store={get:function(k){try{var v=localStorage.getItem(k);if(v!==null)return v;}catch(e){}return mem[k]||null;},set:function(k,v){mem[k]=v;try{localStorage.setItem(k,v);}catch(e){}},del:function(k){delete mem[k];try{localStorage.removeItem(k);}catch(e){}}};
+
+var audioCtx=null;
+function initAudio(){if(audioCtx)return;try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();var b=audioCtx.createBuffer(1,1,22050);var s=audioCtx.createBufferSource();s.buffer=b;s.connect(audioCtx.destination);s.start(0);}catch(e){}}
+function beep(f,d){if(!audioCtx)return;try{var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.value=f;g.gain.value=0.3;o.start();o.stop(audioCtx.currentTime+d/1000);}catch(e){}}
+function shortBeep(){beep(800,150);}function longBeep(){beep(1200,400);}
+var fiVoice=null;
+function findVoice(){try{var v=speechSynthesis.getVoices();for(var i=0;i<v.length;i++){if(v[i].lang&&v[i].lang.indexOf('fi')===0){fiVoice=v[i];return;}}}catch(e){}}
+var lang=store.get('pt4_lang')||'fi';
+function setLang(l){lang=l;store.set('pt4_lang',l);render();}
+function speak(text){try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(text);u.lang=lang==='fi'?'fi-FI':'en-US';u.rate=1.0;u.pitch=0.7;u.volume=1.0;if(lang==='fi'&&fiVoice)u.voice=fiVoice;speechSynthesis.speak(u);}catch(e){}}
+function bark(text){try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(text);u.lang=lang==='fi'?'fi-FI':'en-US';u.rate=1.05;u.pitch=0.6;u.volume=1.0;if(lang==='fi'&&fiVoice)u.voice=fiVoice;speechSynthesis.speak(u);}catch(e){}}
+var TX={fi:{
+  motivate:['Ei t\u00e4m\u00e4 niin vaikeaa ole!','Koita nyt jaksaa!','Mummo tekisi t\u00e4m\u00e4n nopeammin!','Lis\u00e4\u00e4 tehoa!','T\u00e4m\u00e4k\u00f6 on kaikki?','Ei saa luovuttaa!','Paina kovempaa!','Kyll\u00e4 sin\u00e4 jaksat!','Heikompikin jaksaisi!','Mene! \u00c4l\u00e4 mieti!','Nyt ei valiteta!','Ei ole lupaa lopettaa!','Keskity! T\u00e4m\u00e4 ei ole lomareissu!','Tekosyyt ei auta!','Nyt ei saa pett\u00e4\u00e4!','Pieni kipu ei ket\u00e4\u00e4n tapa!'],
+  cd:['Seis!','Yksi!','Kaksi!','Kolme!','Nelj\u00e4!','Viisi!'],
+  rest:['Tauko! Nauti niin kauan kun voit!','Lepo! \u00c4l\u00e4 tottu t\u00e4h\u00e4n!','Hengit\u00e4! Kohta j\u00e4lleen!','Tauko! Toivottavasti jaksat viel\u00e4!'],
+  resume:['Tauko ohi! Takaisin t\u00f6ihin!','Riitt\u00e4\u00e4k\u00f6 se lepo? Jatketaan!','Taas menee! Ei armoa!','Loma ohi! Liikett\u00e4!'],
+  finish:['Seis! Treeni ohi! MIN minuuttia! Ehk\u00e4 huomenna paremmin!','Seis! MIN minuuttia takana! Selvisit hengiss\u00e4!','Seis! MIN minuuttia! En ole viel\u00e4 vaikuttunut mutta hyv\u00e4 alku!','Seis! MIN minuuttia! Olisit voinut tehd\u00e4 paremmin. Mutta selvisit.'],
+  start:'Treeni alkaa! Toivottavasti olet valmis!',pause:'Lepo!',skip:'Seuraava!',prepare:'Valmistaudu!',
+  next:'Seuraavaksi:',kg:'kiloa',kpl:'kappaletta',sec:'sekuntia',reps:'toistoa',doIt:'Suorita!',
+  uiWork:'\u{1F525} Ty\u00f6',uiRest:'\u{1F9D8} Tauko',uiPaused:'Tauolla',uiPrepare:'Valmistaudu',
+  uiStop:'Lopeta',uiResume:'\u25B6 Jatka',uiPause:'\u23F8 Tauko',uiSkip:'Ohita \u2192',uiDone:'VALMIS \u2713',
+  uiSecsLeft:'sekuntia j\u00e4ljell\u00e4',uiRepsLabel:'toistoa',uiBack:'Takaisin',uiFinished:'Valmis!',uiTime:'Aika',uiExercises:'Liikett\u00e4',
+  runStart:'Juoksu alkaa! Mene!',runFinish:'Juoksu valmis!',runPaused:'Juoksu tauolla',
+  runMin:'minuuttia',runSec:'sekuntia',runMeters:'metri\u00e4',runProjected:'Arvio:',runPace:'Vauhti:',
+  runPerKm:'per kilsa',runOneMinLeft:'Yksi minuutti j\u00e4ljell\u00e4! Anna kaikki!',runTenSec:'Kymmenen sekuntia!',
+  runPaceUp:['Vauhti paranee! Hienoa!','Nopeutat! Hyv\u00e4!','Vauhti nousee!'],
+  runPaceDown:['Vauhti hidastuu! Paina!','Hiipuu! \u00c4l\u00e4 luovuta!','Keskity vauhtiin!'],
+  runPaceSteady:['Tasainen vauhti!','Pysy vauhdissa!','Hyv\u00e4 rytmi!'],
+  runNoGps:'GPS ei k\u00e4ytett\u00e4viss\u00e4!',
+  runCooperExcellent:'Erinomainen tulos!',runCooperGood:'Hyv\u00e4 tulos!',runCooperAvg:'Keskiverto.',runCooperBelow:'Alle keskitason.',runCooperLow:'Harjoittele lis\u00e4\u00e4.',
+  uiRun:'\u{1F3C3} Juoksu',uiGym:'\u{1F3CB} Kuntosali',uiDistance:'Matka',uiPaceLabel:'Tahti',uiProjectedLabel:'Ennuste',uiElapsed:'Kulunut',uiRemaining:'J\u00e4ljell\u00e4',
+  runHistDistance:'matka',runHistDuration:'aika',
+  runWarmup:'L\u00e4mmittely',runCooldown:'J\u00e4\u00e4hdyttely',runJog:'H\u00f6lkk\u00e4',runSprint:'Spurtti',runInterval:'Intervalli',
+  runPhase:'Vaihe',runRepeat:'Toista',runTimes:'kertaa',runTargetPace:'Tavoitevauhti',
+  runGpsOk:'GPS toimii!',runGpsWait:'Odotetaan GPS-signaalia...',runGpsError:'GPS ei saatavilla',
+  runPrepTitle:'Valmistaudu',runPrepGps:'GPS-yhteys',runPhaseChange:'Vaihda!',
+  runFaster:'Nopeammin!',runSlower:'Hidasta!',runOnPace:'Hyv\u00e4 tahti!'
+},en:{
+  motivate:['Is that all you got?','My grandma lifts heavier!','Push harder! Now!','Come on! Dig deep!','No excuses!','Pain is temporary! Push!','Stop whining! Move!','You can do better than that!','I said move! Not crawl!','Focus! This is not a vacation!','Weak! Give me more!','Do not quit on me!','Faster! Stronger!','You call that effort?','Show me what you got!','Less thinking, more doing!'],
+  cd:['Stop!','One!','Two!','Three!','Four!','Five!'],
+  rest:['Rest! Enjoy it while it lasts!','Break! Do not get used to it!','Breathe! We go again soon!','Rest! I hope you can still stand!'],
+  resume:['Break is over! Back to work!','Had enough rest? Let us go!','No more resting! Move it!','Vacation is over! Go go go!'],
+  finish:['Stop! Workout done! MIN minutes! Maybe better tomorrow!','Stop! MIN minutes! You survived! This time!','Stop! MIN minutes! Not impressed yet but okay!','Stop! MIN minutes! Could have been better. But you made it.'],
+  start:'Workout starts! Hope you are ready!',pause:'Rest!',skip:'Next!',prepare:'Get ready!',
+  next:'Next up:',kg:'kilos',kpl:'pieces',sec:'seconds',reps:'reps',doIt:'Go!',
+  uiWork:'\u{1F525} Work',uiRest:'\u{1F9D8} Rest',uiPaused:'Paused',uiPrepare:'Get ready',
+  uiStop:'Stop',uiResume:'\u25B6 Resume',uiPause:'\u23F8 Pause',uiSkip:'Skip \u2192',uiDone:'DONE \u2713',
+  uiSecsLeft:'seconds left',uiRepsLabel:'reps',uiBack:'Back',uiFinished:'Done!',uiTime:'Time',uiExercises:'Exercises',
+  runStart:'Run starts! Go!',runFinish:'Run complete!',runPaused:'Run paused',
+  runMin:'minutes',runSec:'seconds',runMeters:'meters',runProjected:'Projected:',runPace:'Pace:',
+  runPerKm:'per km',runOneMinLeft:'One minute left! Give it all!',runTenSec:'Ten seconds!',
+  runPaceUp:['Pace improving! Great!','Getting faster!','Speeding up!'],
+  runPaceDown:['Pace dropping! Push harder!','Slowing down! Dig deep!','Pick it up!'],
+  runPaceSteady:['Steady pace! Good!','Keep it up!','Nice rhythm!'],
+  runNoGps:'GPS not available!',
+  runCooperExcellent:'Excellent result!',runCooperGood:'Good result!',runCooperAvg:'Average.',runCooperBelow:'Below average.',runCooperLow:'Keep training.',
+  uiRun:'\u{1F3C3} Running',uiGym:'\u{1F3CB} Gym',uiDistance:'Distance',uiPaceLabel:'Pace',uiProjectedLabel:'Projected',uiElapsed:'Elapsed',uiRemaining:'Remaining',
+  runHistDistance:'distance',runHistDuration:'duration',
+  runWarmup:'Warmup',runCooldown:'Cooldown',runJog:'Jog',runSprint:'Sprint',runInterval:'Interval',
+  runPhase:'Phase',runRepeat:'Repeat',runTimes:'times',runTargetPace:'Target pace',
+  runGpsOk:'GPS active!',runGpsWait:'Waiting for GPS signal...',runGpsError:'GPS unavailable',
+  runPrepTitle:'Get ready',runPrepGps:'GPS connection',runPhaseChange:'Switch!',
+  runFaster:'Faster!',runSlower:'Slow down!',runOnPace:'Good pace!'
+}};
+function T(){return TX[lang]||TX.fi;}
+function rndFrom(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function rndMotivate(){return rndFrom(T().motivate);}
+try{speechSynthesis.onvoiceschanged=findVoice;findVoice();}catch(e){}
+
+/* WAKE LOCK - no continuous audio to avoid Spotify interference */
+var wakeLock=null;
+function requestWakeLock(){try{if('wakeLock' in navigator){navigator.wakeLock.request('screen').then(function(l){wakeLock=l;l.addEventListener('release',function(){if(W.phase==='active'&&!W.paused)requestWakeLock();});});}}catch(e){}}
+function releaseWakeLock(){try{if(wakeLock){wakeLock.release();wakeLock=null;}}catch(e){}}
+
+/* LOCK SCREEN */
+var isLocked=false;
+function lockScreen(){isLocked=true;document.getElementById('lockscreen').style.display='block';updateLockInfo();}
+function unlockScreen(){isLocked=false;document.getElementById('lockscreen').style.display='none';var t=document.getElementById('lock-thumb');if(t)t.style.left='4px';}
+function updateRunLockInfo(){
+  var mE=document.getElementById('lock-mode'),tE=document.getElementById('lock-time'),nE=document.getElementById('lock-name');
+  if(!mE)return;
+  mE.textContent=R.prog?R.prog.name:'';
+  tE.textContent=fDist(R.distance);
+  nE.textContent=fD(runElapsed())+' \u00b7 '+(runPaceMinKm()>0?fPace(runPaceMinKm())+'/km':'');
+}
+function updateLockInfo(){
+  if(!isLocked)return;var mE=document.getElementById('lock-mode'),tE=document.getElementById('lock-time'),nE=document.getElementById('lock-name');if(!mE)return;
+  if(R.phase==='active'){updateRunLockInfo();return;}
+  if(W.phase!=='active'){unlockScreen();return;}var ex=W.exercises[W.exIdx];
+  if(W.paused){mE.textContent=T().uiPaused;tE.textContent=W.timeLeft;nE.textContent=ex?ex.name:'';}
+  else if(W.mode==='work'){mE.textContent=T().uiWork;tE.textContent=ex.modeType==='reps'?(ex.reps||10)+' '+T().uiRepsLabel:W.timeLeft;nE.textContent=ex?ex.name:'';}
+  else if(W.mode==='rest'){mE.textContent=T().uiRest;tE.textContent=W.timeLeft;var nx=W.exercises[W.exIdx+1];nE.textContent=nx?(T().next+' '+nx.name):'';}
+  else if(W.mode==='countdown'){mE.textContent=T().uiPrepare;tE.textContent=W.timeLeft;nE.textContent=ex?ex.name:'';}
+}
+(function(){
+  var thumb=document.getElementById('lock-thumb'),track=thumb?thumb.parentElement:null;
+  var dragging=false,startX=0,trackW=0;
+  function onS(e){if(!isLocked)return;dragging=true;thumb.classList.add('dragging');startX=(e.touches?e.touches[0]:e).clientX;trackW=track.offsetWidth;e.preventDefault();}
+  function onM(e){if(!dragging)return;var dx=(e.touches?e.touches[0]:e).clientX-startX;thumb.style.left=Math.max(4,Math.min(4+dx,trackW-52))+'px';e.preventDefault();}
+  function onE(){if(!dragging)return;dragging=false;thumb.classList.remove('dragging');if(parseInt(thumb.style.left||'4')>trackW-80){unlockScreen();try{navigator.vibrate(100);}catch(e){}}else thumb.style.left='4px';}
+  if(thumb){thumb.addEventListener('touchstart',onS,{passive:false});thumb.addEventListener('mousedown',onS);document.addEventListener('touchmove',onM,{passive:false});document.addEventListener('mousemove',onM);document.addEventListener('touchend',onE);document.addEventListener('mouseup',onE);}
+  var ls=document.getElementById('lockscreen');if(ls)ls.addEventListener('touchstart',function(e){if(e.target!==thumb&&!thumb.contains(e.target)){e.preventDefault();e.stopPropagation();}},{passive:false});
+})();
+
+/* ========== LIBRARY ========== */
+var DEFAULT_LIB=[
+{cat:'Oma keho',icon:'\u{1F9CD}',exercises:[
+{name:'Haaraperushyppy',detail:'Jumping jacks'},{name:'Kyykky',detail:'Selk\u00e4 suorana'},{name:'Punnerrus',detail:'Lattialla tai polvilta'},{name:'Lankku',detail:'Pid\u00e4 vatsa tiukkana'},{name:'Askelkyykky',detail:'Vuorojaloin'},{name:'Burpee',detail:'Alas ja yl\u00f6s'},{name:'Vuorikiipeilij\u00e4',detail:'Mountain climbers'},{name:'Vatsarutistus',detail:'Polvet koukussa'},{name:'Sivulankku',detail:'Kummallekin puolelle'},{name:'Dippi',detail:'Tuolia vasten'},{name:'Kyykkyhyppy',detail:'Jump squat'},{name:'Selk\u00e4lihakset',detail:'Superman-pito'},{name:'Polvennostojuoksu',detail:'High knees'},{name:'Luistelukyykky',detail:'Skater squat'},{name:'Askelkyykky hypyll\u00e4',detail:'Jumping lunge'},{name:'K\u00e4sik\u00e4vely',detail:'Inchworm'},{name:'Lankkuhyppy',detail:'Plank jack'},{name:'Sein\u00e4kyykky',detail:'Wall sit'},{name:'Keskivartalonkierto',detail:'Russian twist'},{name:'T-punnerrus',detail:'Punnerrus + kierto'},{name:'Polkupy\u00f6r\u00e4vatsalihas',detail:'Bicycle crunch'},{name:'Lautahy\u00e4t',detail:'Hip thrust'},{name:'Tiikeripunnerrus',detail:'Pike push-up'}]},
+{cat:'Kahvakuula',icon:'\u{1F3CB}',exercises:[
+{name:'Kahvakuulaheilautus',detail:'Swing'},{name:'Goblet-kyykky',detail:'Kuula rinnassa'},{name:'Kahvakuulamaastaveto',detail:'Selk\u00e4 suorana'},{name:'Kahvakuulapystypunnerrus',detail:'Olalta yl\u00f6s'},{name:'Kahvakuulasoutu',detail:'Kumara-asento'},{name:'Kiertoheilautus',detail:'Around the world'},{name:'Turkkilainen yl\u00f6snousu',detail:'Turkish get-up'},{name:'Kahvakuula-askelkyykky',detail:'Kuula rinnassa'},{name:'Halo',detail:'Kuula p\u00e4\u00e4n ymp\u00e4ri'},{name:'Clean',detail:'Nostoveto olalle'},{name:'Tempaus',detail:'Snatch'},{name:'Sumokyykky kahvakuulalla',detail:'Leve\u00e4 haara'},{name:'Kahvakuulakyykky+punnerrus',detail:'Thruster'}]},
+{cat:'K\u00e4sipainot',icon:'\u{1F4AA}',exercises:[
+{name:'K\u00e4sipainopunnerrus',detail:'Penkill\u00e4 tai lattialla'},{name:'K\u00e4sipainokulmasoutu',detail:'Kumara-asento'},{name:'K\u00e4sipainopystypunnerrus',detail:'Hartioilta yl\u00f6s'},{name:'Hauisk\u00e4\u00e4nt\u00f6',detail:'Bicep curl'},{name:'Ojentajapunnerrus',detail:'Tricep extension'},{name:'Sivunosto',detail:'Lateral raise'},{name:'Etunosto',detail:'Front raise'},{name:'K\u00e4sipainokyykky',detail:'Painot hartioilla'},{name:'K\u00e4sipainoaskelkyykky',detail:'Vuorojaloin'},{name:'Renegade-soutu',detail:'Lankkuasento'},{name:'K\u00e4sipainomaastaveto',detail:'Romanian deadlift'},{name:'Rintalihasliike',detail:'Fly penkill\u00e4'},{name:'Farmers carry',detail:'K\u00e4vely painoilla'},{name:'Vasarakuljetus',detail:'Hammer curl'},{name:'Arnold-punnerrus',detail:'Kiertaen yl\u00f6s'}]},
+{cat:'Tanko',icon:'\u{1F3CB}\u{FE0F}',exercises:[
+{name:'Takakyykky',detail:'Back squat'},{name:'Etukyykky',detail:'Front squat'},{name:'Penkkipunnerrus tangolla',detail:'Bench press'},{name:'Maastaveto',detail:'Deadlift'},{name:'Tankosoutu',detail:'Barbell row'},{name:'Pystypunnerrus tangolla',detail:'Overhead press'},{name:'Good morning',detail:'Kumarra lantiosta'},{name:'Rinnalleveto',detail:'Power clean'},{name:'Kapea penkkipunnerrus',detail:'Close grip'},{name:'Hauisk\u00e4\u00e4nt\u00f6 tangolla',detail:'Barbell curl'},{name:'Sumo-maastaveto',detail:'Leve\u00e4 asento'}]},
+{cat:'Talja',icon:'\u2699',exercises:[
+{name:'Yl\u00e4taljaveto',detail:'Lat pulldown'},{name:'Alatalja soutu',detail:'Seated cable row'},{name:'Taljapunnerrus',detail:'Cable press'},{name:'Taljaristiveto',detail:'Cable crossover'},{name:'Taljaojentajapunnerrus',detail:'Tricep pushdown'},{name:'Taljahauis',detail:'Cable curl'},{name:'Taljasivunosto',detail:'Cable lateral raise'},{name:'Taljaveto kasvoihin',detail:'Face pull'},{name:'Taljak\u00e4\u00e4nt\u00f6',detail:'Woodchop'},{name:'Taljamaastaveto',detail:'Cable pull-through'},{name:'Taljapunnerrus alas',detail:'Straight arm pulldown'},{name:'Taljavatsarutistus',detail:'Cable crunch'}]},
+{cat:'Venyttely',icon:'\u{1F9D8}',exercises:[
+{name:'Rintalihasvenytys',detail:'K\u00e4si sein\u00e4\u00e4 vasten'},{name:'Takareivenytys',detail:'Suora jalka eteen'},{name:'Lonkankoukistajan venytys',detail:'Polvi maassa'},{name:'Pakaravenytys',detail:'Sel\u00e4ll\u00e4\u00e4n'},{name:'Selk\u00e4venytys',detail:'Cat-cow'},{name:'Olkap\u00e4\u00e4venytys',detail:'K\u00e4si rinnan yli'},{name:'Kylkivenytys',detail:'K\u00e4si yl\u00f6s'},{name:'Pohjevenytys',detail:'Sein\u00e4\u00e4 vasten'},{name:'Etureivenytys',detail:'Kantap\u00e4\u00e4 pakaraan'},{name:'Sis\u00e4reivenytys',detail:'Leve\u00e4 haara'},{name:'Niskalihasten venytys',detail:'Kallista p\u00e4\u00e4t\u00e4'}]}
+];
+
+/* PROGRAMS - E(name,detail,cat,weight,kpl,sec,side,modeType,reps)  side:'','L','R','LR' modeType:'time','reps' */
+var E=function(n,d,c,w,k,s,side,mt,reps){return{name:n+(side==='L'?', vasen k\u00e4si':side==='R'?', oikea k\u00e4si':side==='Lp'?', vasen puoli':side==='Rp'?', oikea puoli':''),detail:d||'',cat:c||'',weight:w||0,kpl:k||0,sec:s||0,side:side||'',modeType:mt||'time',reps:reps||0};};
+var DEFAULT_PROGRAMS=[
+{id:'mix_1',name:'T\u00e4yskehon mix',tag:'Monipuolinen',workSec:45,restSec:10,exercises:[
+E('Haaraperushyppy','Jumping jacks','Oma keho'),E('Kyykky','Selk\u00e4 suorana','Oma keho'),E('Punnerrus','Lattialla','Oma keho'),E('Kahvakuulaheilautus','Swing','Kahvakuula',16,1),E('Askelkyykky','Vuorojaloin','Oma keho'),E('Lankku','Pid\u00e4 vatsa tiukkana','Oma keho',0,0,60),E('K\u00e4sipainokulmasoutu','Kumara-asento','K\u00e4sipainot',12,2),E('Kahvakuulamaastaveto','Selk\u00e4 suorana','Kahvakuula',16,1),E('Burpee','T\u00e4ysi teholla','Oma keho',0,0,30),E('Vatsarutistus','Polvet koukussa','Oma keho'),E('K\u00e4sipainopystypunnerrus','Hartioilta','K\u00e4sipainot',10,2),E('Vuorikiipeilij\u00e4','Mountain climbers','Oma keho')]},
+{id:'venyt_1',name:'Venyttely ja liikkuvuus',tag:'Palautuminen',workSec:30,restSec:5,exercises:[
+E('Niskalihasten venytys','Kallista','Venyttely',0,0,30),E('Olkap\u00e4\u00e4venytys','K\u00e4si rinnan yli','Venyttely',0,0,30),E('Rintalihasvenytys','K\u00e4si sein\u00e4\u00e4n','Venyttely',0,0,30),E('Kylkivenytys','Kallista sivulle','Venyttely',0,0,30),E('Selk\u00e4venytys','Cat-cow','Venyttely',0,0,30),E('Lonkankoukistajan venytys','Polvi maassa','Venyttely',0,0,30),E('Takareivenytys','Jalka eteen','Venyttely',0,0,30),E('Etureivenytys','Kantap\u00e4\u00e4 pakaraan','Venyttely',0,0,30),E('Pakaravenytys','Polvi rintaan','Venyttely',0,0,30),E('Sis\u00e4reivenytys','Leve\u00e4 haara','Venyttely',0,0,30),E('Pohjevenytys','Sein\u00e4\u00e4 vasten','Venyttely',0,0,30)]},
+{id:'kb_1',name:'Kahvakuulatreeni',tag:'Kahvakuula',workSec:45,restSec:15,exercises:[
+E('Halo','L\u00e4mmittely','Kahvakuula',12,1),E('Goblet-kyykky','Kuula rinnassa','Kahvakuula',16,1),E('Kahvakuulaheilautus','Kaksin k\u00e4sin','Kahvakuula',16,1),E('Kahvakuulapystypunnerrus','Olalta yl\u00f6s','Kahvakuula',12,1,'L'),E('Kahvakuulapystypunnerrus','Olalta yl\u00f6s','Kahvakuula',12,1,'R'),E('Kahvakuulasoutu','Ved\u00e4 taakse','Kahvakuula',16,1,'L'),E('Kahvakuulasoutu','Ved\u00e4 taakse','Kahvakuula',16,1,'R'),E('Kahvakuula-askelkyykky','Kuula rinnassa','Kahvakuula',12,1),E('Kahvakuulamaastaveto','Jarruta alas','Kahvakuula',20,1),E('Clean','Nostoveto olalle','Kahvakuula',16,1,'L'),E('Clean','Nostoveto olalle','Kahvakuula',16,1,'R'),E('Sumokyykky kahvakuulalla','Leve\u00e4 haara','Kahvakuula',20,1),E('Kahvakuulakyykky+punnerrus','Thruster','Kahvakuula',12,1)]},
+{id:'db_1',name:'K\u00e4sipainotreeni',tag:'K\u00e4sipainot',workSec:45,restSec:15,exercises:[
+E('K\u00e4sipainokyykky','Painot hartioilla','K\u00e4sipainot',12,2),E('K\u00e4sipainopunnerrus','Lattialla tai penkill\u00e4','K\u00e4sipainot',14,2),E('K\u00e4sipainokulmasoutu','Kumara-asento','K\u00e4sipainot',12,2),E('K\u00e4sipainopystypunnerrus','Hartioilta','K\u00e4sipainot',10,2),E('K\u00e4sipainoaskelkyykky','Painot sivuilla','K\u00e4sipainot',10,2),E('Hauisk\u00e4\u00e4nt\u00f6','Bicep curl','K\u00e4sipainot',10,2),E('Ojentajapunnerrus','Tricep extension','K\u00e4sipainot',8,1,'L'),E('Ojentajapunnerrus','Tricep extension','K\u00e4sipainot',8,1,'R'),E('K\u00e4sipainomaastaveto','Romanian deadlift','K\u00e4sipainot',14,2),E('Sivunosto','Lateral raise','K\u00e4sipainot',6,2),E('Renegade-soutu','Lankkuasento','K\u00e4sipainot',10,2),E('Rintalihasliike','Fly','K\u00e4sipainot',10,2),E('Farmers carry','K\u00e4vely painoilla','K\u00e4sipainot',16,2)]},
+{id:'bw_1',name:'Oman kehon treeni',tag:'Ei v\u00e4lineit\u00e4',workSec:45,restSec:10,exercises:[
+E('Haaraperushyppy','L\u00e4mmittely','Oma keho'),E('Kyykky','Syv\u00e4 kyykky','Oma keho'),E('Punnerrus','Lattialla','Oma keho'),E('Lankku','Pid\u00e4 asento','Oma keho',0,0,60),E('Askelkyykky','Vuorojaloin','Oma keho'),E('Vuorikiipeilij\u00e4','Nopea','Oma keho'),E('Dippi','Tuolia vasten','Oma keho'),E('Kyykkyhyppy','R\u00e4j\u00e4ht\u00e4v\u00e4','Oma keho',0,0,30),E('Sivulankku','Pid\u00e4 asento','Oma keho',0,0,30,'Lp'),E('Sivulankku','Pid\u00e4 asento','Oma keho',0,0,30,'Rp'),E('Polvennostojuoksu','High knees','Oma keho'),E('Selk\u00e4lihakset','Superman-pito','Oma keho'),E('Burpee','Viimeinen ry\u00f6psys','Oma keho',0,0,30)]},
+{id:'cable_1',name:'Taljatreeni',tag:'Talja',workSec:45,restSec:15,exercises:[
+E('Yl\u00e4taljaveto','Leve\u00e4 ote','Talja',40,1),E('Alatalja soutu','Ved\u00e4 rintaan','Talja',35,1),E('Taljapunnerrus','Rinta','Talja',20,1),E('Taljaristiveto','Crossover','Talja',10,2),E('Taljaojentajapunnerrus','Tricep pushdown','Talja',25,1),E('Taljahauis','Cable curl','Talja',20,1),E('Taljasivunosto','Lateral raise','Talja',5,1,'L'),E('Taljasivunosto','Lateral raise','Talja',5,1,'R'),E('Taljaveto kasvoihin','Face pull','Talja',15,1),E('Taljak\u00e4\u00e4nt\u00f6','Woodchop','Talja',15,1,'Lp'),E('Taljak\u00e4\u00e4nt\u00f6','Woodchop','Talja',15,1,'Rp'),E('Taljamaastaveto','Pull-through','Talja',25,1),E('Taljapunnerrus alas','Straight arm pulldown','Talja',20,1),E('Taljavatsarutistus','Cable crunch','Talja',30,1)]},
+{id:'bb_1',name:'Tankopainotreeni',tag:'Tanko',workSec:45,restSec:20,exercises:[
+E('Takakyykky','Back squat','Tanko',60,1),E('Penkkipunnerrus tangolla','Bench press','Tanko',50,1),E('Maastaveto','Deadlift','Tanko',80,1),E('Tankosoutu','Barbell row','Tanko',40,1),E('Pystypunnerrus tangolla','Overhead press','Tanko',30,1),E('Etukyykky','Front squat','Tanko',40,1),E('Kapea penkkipunnerrus','Close grip','Tanko',40,1),E('Hauisk\u00e4\u00e4nt\u00f6 tangolla','Barbell curl','Tanko',25,1)]},
+{id:'legs_1',name:'Jalkatreeni',tag:'Jalat',workSec:45,restSec:15,exercises:[
+E('Kyykky','L\u00e4mmittely','Oma keho'),E('Goblet-kyykky','Kuula rinnassa','Kahvakuula',16,1),E('K\u00e4sipainoaskelkyykky','Painot sivuilla','K\u00e4sipainot',12,2),E('Sumokyykky kahvakuulalla','Leve\u00e4 haara','Kahvakuula',20,1),E('K\u00e4sipainomaastaveto','Romanian deadlift','K\u00e4sipainot',14,2),E('Kyykkyhyppy','R\u00e4j\u00e4ht\u00e4v\u00e4','Oma keho',0,0,30),E('Sein\u00e4kyykky','Pid\u00e4 asento','Oma keho',0,0,60),E('Luistelukyykky','Sivuttaisliike','Oma keho'),E('Kahvakuulaheilautus','Swing','Kahvakuula',16,1),E('Lautahy\u00e4t','Hip thrust','Oma keho')]},
+{id:'arms_1',name:'K\u00e4si- ja hartiatreeni',tag:'K\u00e4det + hartiat',workSec:40,restSec:15,exercises:[
+E('Hauisk\u00e4\u00e4nt\u00f6','Bicep curl','K\u00e4sipainot',10,2),E('Ojentajapunnerrus','Tricep extension','K\u00e4sipainot',8,1,'L'),E('Ojentajapunnerrus','Tricep extension','K\u00e4sipainot',8,1,'R'),E('K\u00e4sipainopystypunnerrus','Shoulder press','K\u00e4sipainot',10,2),E('Vasarakuljetus','Hammer curl','K\u00e4sipainot',10,2),E('Sivunosto','Lateral raise','K\u00e4sipainot',6,2),E('Dippi','Ojentajat','Oma keho'),E('Etunosto','Front raise','K\u00e4sipainot',6,2),E('Arnold-punnerrus','Kiertaen','K\u00e4sipainot',8,2),E('Taljaojentajapunnerrus','Tricep pushdown','Talja',25,1),E('Taljahauis','Cable curl','Talja',20,1)]},
+{id:'back_1',name:'Selk\u00e4treeni',tag:'Selk\u00e4',workSec:45,restSec:15,exercises:[
+E('Yl\u00e4taljaveto','Leve\u00e4 ote','Talja',40,1),E('K\u00e4sipainokulmasoutu','Kumara-asento','K\u00e4sipainot',14,2),E('Alatalja soutu','Istuen','Talja',35,1),E('Kahvakuulamaastaveto','Selk\u00e4 suorana','Kahvakuula',20,1),E('Taljaveto kasvoihin','Face pull','Talja',15,1),E('Renegade-soutu','Lankkuasento','K\u00e4sipainot',10,2),E('Taljapunnerrus alas','Straight arm pulldown','Talja',20,1),E('Selk\u00e4lihakset','Superman-pito','Oma keho',0,0,45)]},
+{id:'core_1',name:'Vatsatreeni / Core',tag:'Vatsa',workSec:40,restSec:10,exercises:[
+E('Lankku','Peruslankku','Oma keho',0,0,60),E('Vatsarutistus','Polvet koukussa','Oma keho'),E('Sivulankku','Pid\u00e4 asento','Oma keho',0,0,30,'Lp'),E('Sivulankku','Pid\u00e4 asento','Oma keho',0,0,30,'Rp'),E('Vuorikiipeilij\u00e4','Nopea tahti','Oma keho'),E('Polkupy\u00f6r\u00e4vatsalihas','Bicycle crunch','Oma keho'),E('Keskivartalonkierto','Russian twist','Oma keho'),E('Selk\u00e4lihakset','Superman-pito','Oma keho'),E('Taljak\u00e4\u00e4nt\u00f6','Woodchop','Talja',15,1,'Lp'),E('Taljak\u00e4\u00e4nt\u00f6','Woodchop','Talja',15,1,'Rp'),E('Taljavatsarutistus','Cable crunch','Talja',25,1)]},
+{id:'hiit_1',name:'HIIT-piiri',tag:'Korkea intensiteetti',workSec:30,restSec:10,exercises:[
+E('Burpee','T\u00e4ysi teholla','Oma keho'),E('Kyykkyhyppy','R\u00e4j\u00e4ht\u00e4v\u00e4','Oma keho'),E('Vuorikiipeilij\u00e4','Nopea tahti','Oma keho'),E('Kahvakuulaheilautus','Voimakas','Kahvakuula',16,1),E('Polvennostojuoksu','T\u00e4ysi vauhti','Oma keho'),E('Punnerrus','Nopea','Oma keho'),E('Askelkyykky hypyll\u00e4','Vuorotellen','Oma keho'),E('Lankkuhyppy','Plank jack','Oma keho'),E('Haaraperushyppy','T\u00e4ysi teho','Oma keho'),E('Vatsarutistus','Nopeat toistot','Oma keho')]},
+{id:'push_1',name:'Push-p\u00e4iv\u00e4',tag:'Rinta + hartiat + ojentajat',workSec:45,restSec:15,exercises:[
+E('Punnerrus','L\u00e4mmittely','Oma keho'),E('K\u00e4sipainopunnerrus','Penkill\u00e4','K\u00e4sipainot',14,2),E('K\u00e4sipainopystypunnerrus','Seisten','K\u00e4sipainot',10,2),E('Rintalihasliike','Fly','K\u00e4sipainot',10,2),E('Taljapunnerrus','Cable press','Talja',20,1),E('Sivunosto','Lateral raise','K\u00e4sipainot',6,2),E('Arnold-punnerrus','Kiertaen','K\u00e4sipainot',8,2),E('Taljaojentajapunnerrus','Pushdown','Talja',25,1),E('Ojentajapunnerrus','Extension','K\u00e4sipainot',8,1,'L'),E('Ojentajapunnerrus','Extension','K\u00e4sipainot',8,1,'R'),E('Tiikeripunnerrus','Pike push-up','Oma keho')]},
+{id:'pull_1',name:'Pull-p\u00e4iv\u00e4',tag:'Selk\u00e4 + hauikset',workSec:45,restSec:15,exercises:[
+E('Yl\u00e4taljaveto','Leve\u00e4 ote','Talja',40,1),E('K\u00e4sipainokulmasoutu','Kumara-asento','K\u00e4sipainot',14,2),E('Alatalja soutu','Istuen','Talja',35,1),E('Taljaveto kasvoihin','Face pull','Talja',15,1),E('Kahvakuulamaastaveto','Selk\u00e4 suorana','Kahvakuula',20,1),E('Hauisk\u00e4\u00e4nt\u00f6','Bicep curl','K\u00e4sipainot',10,2),E('Taljahauis','Cable curl','Talja',20,1),E('Vasarakuljetus','Hammer curl','K\u00e4sipainot',10,2),E('Taljapunnerrus alas','Straight arm pulldown','Talja',20,1),E('Selk\u00e4lihakset','Superman-pito','Oma keho',0,0,45)]},
+{id:'upper_1',name:'Yl\u00e4vartalotreeni',tag:'Yl\u00e4vartalo',workSec:45,restSec:15,exercises:[
+E('K\u00e4sipainopunnerrus','Penkill\u00e4','K\u00e4sipainot',14,2),E('K\u00e4sipainokulmasoutu','Kumara-asento','K\u00e4sipainot',12,2),E('K\u00e4sipainopystypunnerrus','Shoulder press','K\u00e4sipainot',10,2),E('Yl\u00e4taljaveto','Lat pulldown','Talja',40,1),E('Taljaristiveto','Cable crossover','Talja',10,2),E('Taljaveto kasvoihin','Face pull','Talja',15,1),E('Hauisk\u00e4\u00e4nt\u00f6','Bicep curl','K\u00e4sipainot',10,2),E('Taljaojentajapunnerrus','Tricep pushdown','Talja',25,1),E('Sivunosto','Lateral raise','K\u00e4sipainot',6,2),E('Lankku','Core-viimeistely','Oma keho',0,0,60)]},
+{id:'lower_1',name:'Alavartalotreeni',tag:'Alavartalo',workSec:45,restSec:15,exercises:[
+E('Goblet-kyykky','Kuula rinnassa','Kahvakuula',16,1),E('K\u00e4sipainomaastaveto','Romanian deadlift','K\u00e4sipainot',14,2),E('K\u00e4sipainoaskelkyykky','Vuorojaloin','K\u00e4sipainot',10,2),E('Sumokyykky kahvakuulalla','Leve\u00e4 haara','Kahvakuula',20,1),E('Taljamaastaveto','Pull-through','Talja',25,1),E('Kyykkyhyppy','R\u00e4j\u00e4ht\u00e4v\u00e4','Oma keho',0,0,30),E('Kahvakuulaheilautus','Swing','Kahvakuula',16,1),E('Lautahy\u00e4t','Hip thrust','Oma keho'),E('Sein\u00e4kyykky','Pid\u00e4 asento','Oma keho',0,0,60)]},
+{id:'kbBw_1',name:'Kahvakuula + oma keho',tag:'Ei salia',workSec:45,restSec:10,exercises:[
+E('Haaraperushyppy','L\u00e4mmittely','Oma keho'),E('Kahvakuulaheilautus','Swing','Kahvakuula',16,1),E('Punnerrus','Lattialla','Oma keho'),E('Goblet-kyykky','Kuula rinnassa','Kahvakuula',16,1),E('Vuorikiipeilij\u00e4','Nopea','Oma keho'),E('Kahvakuulasoutu','Kumara-asento','Kahvakuula',16,1,'L'),E('Kahvakuulasoutu','Kumara-asento','Kahvakuula',16,1,'R'),E('Askelkyykky','Vuorojaloin','Oma keho'),E('Kahvakuulapystypunnerrus','Olalta yl\u00f6s','Kahvakuula',12,1,'L'),E('Kahvakuulapystypunnerrus','Olalta yl\u00f6s','Kahvakuula',12,1,'R'),E('Lankku','Pid\u00e4 asento','Oma keho',0,0,60),E('Kahvakuulakyykky+punnerrus','Thruster','Kahvakuula',12,1),E('Vatsarutistus','Polvet koukussa','Oma keho'),E('Kahvakuulamaastaveto','Selk\u00e4 suorana','Kahvakuula',16,1)]},
+{id:'morning_1',name:'Aamutreeni 15 min',tag:'Nopea',workSec:40,restSec:10,exercises:[
+E('Haaraperushyppy','Her\u00e4tys','Oma keho'),E('Kyykky','Syv\u00e4 kyykky','Oma keho'),E('Punnerrus','Lattialla','Oma keho'),E('Lankku','Pid\u00e4 asento','Oma keho',0,0,45),E('Askelkyykky','Vuorojaloin','Oma keho'),E('Vuorikiipeilij\u00e4','Nopea','Oma keho'),E('Vatsarutistus','Polvet koukussa','Oma keho'),E('Selk\u00e4lihakset','Superman-pito','Oma keho')]},
+{id:'cool_1',name:'J\u00e4\u00e4hdyttely',tag:'Loppuverryttely',workSec:30,restSec:5,exercises:[
+E('Selk\u00e4venytys','Cat-cow','Venyttely',0,0,30),E('Rintalihasvenytys','Sein\u00e4\u00e4 vasten','Venyttely',0,0,30),E('Olkap\u00e4\u00e4venytys','K\u00e4si rinnan yli','Venyttely',0,0,30),E('Kylkivenytys','Kummallekin puolelle','Venyttely',0,0,30),E('Lonkankoukistajan venytys','Polvi maassa','Venyttely',0,0,30),E('Takareivenytys','Jalka eteen','Venyttely',0,0,30),E('Etureivenytys','Kantap\u00e4\u00e4 pakaraan','Venyttely',0,0,30),E('Pakaravenytys','Polvi rintaan','Venyttely',0,0,30),E('Pohjevenytys','Sein\u00e4\u00e4 vasten','Venyttely',0,0,30),E('Niskalihasten venytys','Kallista','Venyttely',0,0,30)]},
+{id:'pt_fbd',name:'PT: Full Body Day',tag:'Personal Trainer',workSec:45,restSec:15,exercises:[
+E('Haaraperushyppy','Warmup','Oma keho',0,0,60),E('Goblet-kyykky','Alavartalon perusliike','Kahvakuula',16,1),E('K\u00e4sipainopunnerrus','Rinta','K\u00e4sipainot',14,2),E('Yl\u00e4taljaveto','Selk\u00e4','Talja',40,1),E('K\u00e4sipainopystypunnerrus','Hartiat','K\u00e4sipainot',10,2),E('K\u00e4sipainomaastaveto','Takareidet + pakarat','K\u00e4sipainot',14,2),E('Hauisk\u00e4\u00e4nt\u00f6','Hauikset','K\u00e4sipainot',10,2),E('Taljaojentajapunnerrus','Ojentajat','Talja',25,1),E('Lankku','Core','Oma keho',0,0,60),E('Polkupy\u00f6r\u00e4vatsalihas','Core','Oma keho')]}
+];
+
+function getLib(){try{var d=JSON.parse(store.get('pt4_lib'));return(d&&d.length)?d:null;}catch(e){return null;}}
+function saveLib(l){store.set('pt4_lib',JSON.stringify(l));}
+function initLib(){if(!getLib())saveLib(JSON.parse(JSON.stringify(DEFAULT_LIB)));}
+initLib();
+function getPrograms(){try{var d=JSON.parse(store.get('pt4_progs'));return(d&&d.length)?d:null;}catch(e){return null;}}
+function savePrograms(p){store.set('pt4_progs',JSON.stringify(p));}
+function initPrograms(){if(!getPrograms())savePrograms(JSON.parse(JSON.stringify(DEFAULT_PROGRAMS)));}
+function getHistory(){try{return JSON.parse(store.get('pt4_hist')||'[]');}catch(e){return[];}}
+function saveHistory(e){var h=getHistory();h.unshift(e);if(h.length>200)h.length=200;store.set('pt4_hist',JSON.stringify(h));}
+initPrograms();
+
+var mainMode=store.get('pt4_mode')||'choose',view='home',editProg=null,homeTab='programs',libSearch='',libCat='',prepProg=null,editLibCat=-1,editLibEx=-1;
+var staging=null;
+var insertAt=0;
+var W={phase:'idle',progName:'',exercises:[],workSec:45,restSec:10,exIdx:0,mode:'work',timeLeft:0,totalStart:null,exDurs:[],paused:false,pausedAt:0,pauseTotal:0};
+var timer=null;
+
+function pad2(n){return n<10?'0'+n:''+n;}
+function uid(){return 'p_'+Date.now()+'_'+Math.random().toString(36).substr(2,5);}
+function fD(ms){var s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60);if(h>0)return h+':'+pad2(m%60)+':'+pad2(s%60);return m+':'+pad2(s%60);}
+function fT(d){return pad2(d.getHours())+':'+pad2(d.getMinutes());}
+function fDF(d){return d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();}
+function esc(s){if(!s)return '';var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function equipText(ex){var p=[];if(ex.weight)p.push(ex.weight+' kg');if(ex.kpl>1)p.push(ex.kpl+' kpl');else if(ex.kpl===1)p.push('1 kpl');return p.join(' \u00d7 ');}
+function elapsedTime(){if(W.paused)return W.pausedAt-W.totalStart-W.pauseTotal;return Date.now()-W.totalStart-W.pauseTotal;}
+function speakExercise(ex,sec){var t=ex.name+'! ';if(ex.weight){t+=ex.weight+' '+T().kg+'! ';}if(ex.kpl>1)t+=ex.kpl+' '+T().kpl+'! ';if(ex.modeType==='reps')t+=(ex.reps||10)+' '+T().reps+'! '+T().doIt;else t+=sec+' '+T().sec+'! '+rndMotivate();bark(t);}
+function getEquipmentList(exercises){var g={};for(var i=0;i<exercises.length;i++){var ex=exercises[i];if(!ex.weight||ex.weight<=0)continue;var c=ex.cat||'Muu';var k=c+'|'+ex.weight+'|'+(ex.kpl||1);if(!g[k])g[k]={cat:c,weight:ex.weight,kpl:ex.kpl||1,names:[]};if(g[k].names.indexOf(ex.name)<0)g[k].names.push(ex.name);}var l=[];for(var j in g)l.push(g[j]);l.sort(function(a,b){return a.cat<b.cat?-1:a.cat>b.cat?1:a.weight-b.weight;});return l;}
+
+/* BACKUP / RESTORE */
+function exportBackup(){
+  try{
+    var data={version:2,date:new Date().toISOString(),programs:getPrograms()||[],library:getLib()||[],history:getHistory(),lang:lang,runPrograms:getRunPrograms()||[],runHistory:getRunHistory()};
+    var json=JSON.stringify(data,null,2);
+    var blob=new Blob([json],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;a.download='pt-backup-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }catch(e){alert('Backup failed: '+e.message);}
+}
+function importBackup(file){
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var data=JSON.parse(ev.target.result);
+      if(!data.programs||!Array.isArray(data.programs)){alert(lang==='fi'?'Virheellinen tiedosto':'Invalid file');return;}
+      var msg=lang==='fi'?'Palautetaan varmuuskopio?\n\nOhjelmat: '+data.programs.length+'\nKirjasto: '+(data.library?data.library.length:0)+' ryhm\u00e4\u00e4\nHistoria: '+(data.history?data.history.length:0)+' treeni\u00e4\n\nT\u00e4m\u00e4 korvaa nykyisen datan!':'Restore backup?\n\nPrograms: '+data.programs.length+'\nLibrary: '+(data.library?data.library.length:0)+' categories\nHistory: '+(data.history?data.history.length:0)+' workouts\n\nThis will replace current data!';
+      if(!confirm(msg))return;
+      savePrograms(data.programs);
+      if(data.library&&data.library.length)saveLib(data.library);
+      if(data.history&&data.history.length)store.set('pt4_hist',JSON.stringify(data.history));
+      if(data.lang)setLang(data.lang);
+      if(data.runPrograms&&data.runPrograms.length)saveRunPrograms(data.runPrograms);
+      if(data.runHistory&&data.runHistory.length)store.set('pt4_runhist',JSON.stringify(data.runHistory));
+      render();
+    }catch(e){alert((lang==='fi'?'Tiedoston luku ep\u00e4onnistui: ':'File read failed: ')+e.message);}
+  };
+  reader.readAsText(file);
+}
+
+
+/* ========== RUNNING MODULE ========== */
+var R={phase:'idle',prog:null,startTime:null,pauseTotal:0,pausedAt:0,distance:0,positions:[],lastSpeechAt:0,prevPace:0,watchId:null,finishTime:0,phaseIdx:0,phaseTimeLeft:0,flatPhases:[],roundNum:0};
+var gpsStatus='unknown',gpsCheckId=null;
+var runView='list',editRunProg=null,runHomeTab='programs';
+
+function getRunPrograms(){try{var d=JSON.parse(store.get('pt4_runprogs'));return(d&&d.length)?d:null;}catch(e){return null;}}
+function saveRunPrograms(p){store.set('pt4_runprogs',JSON.stringify(p));}
+var DEFAULT_RUN_PROGRAMS=[
+  {id:'cooper',name:'Cooperin testi',type:'cooper',targetTime:720,targetDistance:0,desc:'12 min juoksu',phases:[]},
+  {id:'run_5k',name:'5 km juoksu',type:'distance',targetTime:0,targetDistance:5000,desc:'Juokse 5 km',phases:[]},
+  {id:'run_10k',name:'10 km juoksu',type:'distance',targetTime:0,targetDistance:10000,desc:'Juokse 10 km',phases:[]},
+  {id:'run_30min',name:'30 min juoksu',type:'time',targetTime:1800,targetDistance:0,desc:'Vapaa 30 min juoksu',phases:[]},
+  {id:'run_free',name:'Vapaa juoksu',type:'free',targetTime:0,targetDistance:0,desc:'Ei tavoitetta',phases:[]},
+  {id:'int_basic',name:'Perusintervalli',type:'interval',targetTime:0,targetDistance:0,
+    desc:'L\u00e4mmittely + 4x(h\u00f6lkk\u00e4/spurtti) + j\u00e4\u00e4hdyttely',
+    phases:[{name:'L\u00e4mmittely',dur:300,pace:0,type:'warmup'},
+      {name:'H\u00f6lkk\u00e4',dur:180,pace:0,type:'jog'},
+      {name:'Spurtti',dur:60,pace:4.0,type:'sprint'}],
+    repeatFrom:1,repeatTo:2,repeatCount:4,
+    cooldown:{name:'J\u00e4\u00e4hdyttely',dur:300,pace:0}},
+  {id:'int_pyramid',name:'Pyramidi-intervalli',type:'interval',targetTime:0,targetDistance:0,
+    desc:'Nouseva ja laskeva intensiteetti',
+    phases:[{name:'L\u00e4mmittely',dur:300,pace:0,type:'warmup'},
+      {name:'Kevyt',dur:120,pace:0,type:'jog'},
+      {name:'Keski',dur:90,pace:4.5,type:'tempo'},
+      {name:'Kova',dur:60,pace:4.0,type:'sprint'},
+      {name:'Keski',dur:90,pace:4.5,type:'tempo'},
+      {name:'Kevyt',dur:120,pace:0,type:'jog'}],
+    repeatFrom:1,repeatTo:5,repeatCount:2,
+    cooldown:{name:'J\u00e4\u00e4hdyttely',dur:300,pace:0}},
+  {id:'int_tempo',name:'Tempojuoksu',type:'interval',targetTime:0,targetDistance:0,
+    desc:'Pitk\u00e4t tempop\u00e4tk\u00e4t',
+    phases:[{name:'L\u00e4mmittely',dur:300,pace:0,type:'warmup'},
+      {name:'Tempojuoksu',dur:600,pace:5.0,type:'tempo'},
+      {name:'Palautus',dur:180,pace:0,type:'jog'}],
+    repeatFrom:1,repeatTo:2,repeatCount:3,
+    cooldown:{name:'J\u00e4\u00e4hdyttely',dur:300,pace:0}},
+  {id:'int_fartlek',name:'Fartlek',type:'interval',targetTime:0,targetDistance:0,
+    desc:'Vaihteleva vauhti, hauska harjoitus',
+    phases:[{name:'L\u00e4mmittely',dur:300,pace:0,type:'warmup'},
+      {name:'Nopea',dur:45,pace:3.8,type:'sprint'},
+      {name:'Rauhallinen',dur:90,pace:0,type:'jog'},
+      {name:'Reipas',dur:60,pace:4.2,type:'tempo'},
+      {name:'Rauhallinen',dur:120,pace:0,type:'jog'}],
+    repeatFrom:1,repeatTo:4,repeatCount:4,
+    cooldown:{name:'J\u00e4\u00e4hdyttely',dur:300,pace:0}}
+];
+function initRunPrograms(){if(!getRunPrograms())saveRunPrograms(JSON.parse(JSON.stringify(DEFAULT_RUN_PROGRAMS)));
+  /* Migrate: add interval programs if missing */
+  var rp=getRunPrograms();var ids={};for(var i=0;i<rp.length;i++)ids[rp[i].id]=true;
+  var added=false;for(var j=0;j<DEFAULT_RUN_PROGRAMS.length;j++){if(!ids[DEFAULT_RUN_PROGRAMS[j].id]){rp.push(JSON.parse(JSON.stringify(DEFAULT_RUN_PROGRAMS[j])));added=true;}}
+  if(added)saveRunPrograms(rp);
+}
+function getRunHistory(){try{return JSON.parse(store.get('pt4_runhist')||'[]');}catch(e){return[];}}
+function saveRunHistory(e){var h=getRunHistory();h.unshift(e);if(h.length>200)h.length=200;store.set('pt4_runhist',JSON.stringify(h));}
+initRunPrograms();
+
+/* GPS */
+function haversine(lat1,lon1,lat2,lon2){
+  var RR=6371000,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return RR*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function addGPSPoint(pos){
+  if(R.phase!=='active')return;
+  var p={lat:pos.coords.latitude,lon:pos.coords.longitude,acc:pos.coords.accuracy,time:Date.now()};
+  if(p.acc>30)return;
+  var pts=R.positions;
+  if(pts.length>0){
+    var last=pts[pts.length-1];var dt=(p.time-last.time)/1000;
+    if(dt<1.5)return;
+    var dd=haversine(last.lat,last.lon,p.lat,p.lon);
+    if(dd/dt>12)return;
+    if(dd<0.5)return;
+    R.distance+=dd;
+  }
+  pts.push(p);
+}
+function startGPS(){
+  if(!navigator.geolocation){bark(T().runNoGps);return false;}
+  try{R.watchId=navigator.geolocation.watchPosition(function(pos){addGPSPoint(pos);},function(err){},{enableHighAccuracy:true,maximumAge:2000,timeout:10000});}catch(e){bark(T().runNoGps);return false;}
+  return true;
+}
+function stopGPS(){if(R.watchId!==null){try{navigator.geolocation.clearWatch(R.watchId);}catch(e){}R.watchId=null;}}
+
+/* Running engine */
+function runElapsed(){if(R.phase==='paused')return R.pausedAt-R.startTime-R.pauseTotal;if(R.phase==='finished')return R.finishTime-R.startTime-R.pauseTotal;return Date.now()-R.startTime-R.pauseTotal;}
+function runPace(){var el=runElapsed()/1000;return el>3?R.distance/el:0;}
+function runPaceMinKm(){var p=runPace();return p>0.3?(1000/p/60):0;}
+function runProjectedCooper(){var el=runElapsed()/1000;return el>10?R.distance/el*720:0;}
+function fDist(m){return m>=1000?(m/1000).toFixed(2)+' km':Math.round(m)+' m';}
+function fPace(minkm){if(minkm<=0)return '--:--';var m=Math.floor(minkm);var s=Math.round((minkm-m)*60);return m+':'+pad2(s);}
+
+function flattenPhases(prog){
+  if(prog.type!=='interval'||!prog.phases||!prog.phases.length)return[];
+  var flat=[];
+  var main=prog.phases;
+  var rf=prog.repeatFrom||0,rt=prog.repeatTo||0,rc=prog.repeatCount||1;
+  /* Add warmup (phase 0 if type warmup, or phases before repeatFrom) */
+  for(var i=0;i<main.length;i++){
+    if(i<rf){flat.push({name:main[i].name,dur:main[i].dur,pace:main[i].pace||0,type:main[i].type||'jog',round:0});}
+  }
+  /* Repeat block */
+  for(var r=1;r<=rc;r++){
+    for(var j=rf;j<=rt&&j<main.length;j++){
+      flat.push({name:main[j].name,dur:main[j].dur,pace:main[j].pace||0,type:main[j].type||'jog',round:r});
+    }
+  }
+  /* Phases after repeat block */
+  for(var k=rt+1;k<main.length;k++){
+    flat.push({name:main[k].name,dur:main[k].dur,pace:main[k].pace||0,type:main[k].type||'jog',round:0});
+  }
+  /* Cooldown */
+  if(prog.cooldown&&prog.cooldown.dur>0){
+    flat.push({name:prog.cooldown.name||'Cooldown',dur:prog.cooldown.dur,pace:prog.cooldown.pace||0,type:'cooldown',round:0});
+  }
+  return flat;
+}
+function intervalTotalTime(prog){
+  var f=flattenPhases(prog),t=0;for(var i=0;i<f.length;i++)t+=f[i].dur;return t;
+}
+
+function goRunPrep(progId){
+  var progs=getRunPrograms()||[];var prog=null;
+  for(var i=0;i<progs.length;i++){if(progs[i].id===progId){prog=progs[i];break;}}
+  if(!prog)return;
+  R.prog=prog;gpsStatus='checking';view='runprep';
+  if(gpsCheckId)try{navigator.geolocation.clearWatch(gpsCheckId);}catch(e){}
+  if(navigator.geolocation){
+    gpsCheckId=navigator.geolocation.watchPosition(function(pos){if(pos.coords.accuracy<50)gpsStatus='ok';render();},function(err){gpsStatus='error';render();},{enableHighAccuracy:true,maximumAge:5000,timeout:10000});
+  }else{gpsStatus='error';}
+  render();
+}
+function startRunFromPrep(){
+  if(gpsCheckId)try{navigator.geolocation.clearWatch(gpsCheckId);}catch(e){}
+  gpsCheckId=null;
+  startRun(R.prog.id);
+  lockScreen();
+}
+
+function startRun(progId){
+  initAudio();requestWakeLock();
+  var progs=getRunPrograms()||[];var prog=null;
+  for(var i=0;i<progs.length;i++){if(progs[i].id===progId){prog=progs[i];break;}}
+  if(!prog)return;
+  var flat=prog.type==='interval'?flattenPhases(prog):[];
+  R={phase:'active',prog:prog,startTime:Date.now(),pauseTotal:0,pausedAt:0,distance:0,positions:[],lastSpeechAt:0,prevPace:0,watchId:null,finishTime:0,phaseIdx:0,phaseTimeLeft:flat.length>0?flat[0].dur:0,flatPhases:flat,roundNum:0};
+  if(!startGPS()){R.phase='idle';releaseWakeLock();return;}
+  view='runactive';
+  clearAllTimers();timer=setInterval(runTick,1000);
+  if(prog.type==='interval'&&flat.length>0){bark(flat[0].name+'! '+Math.floor(flat[0].dur/60)+' '+T().runMin+'!');}
+  else{bark(T().runStart);}
+  render();
+}
+
+function runTick(){
+  if(R.phase!=='active')return;
+  var elSec=Math.floor(runElapsed()/1000);
+  var prog=R.prog;
+  if(prog.type==='cooper'&&elSec>=720){finishRun();return;}
+  if(prog.type==='time'&&prog.targetTime>0&&elSec>=prog.targetTime){finishRun();return;}
+  if(prog.type==='distance'&&prog.targetDistance>0&&R.distance>=prog.targetDistance){finishRun();return;}
+  /* Interval phase management */
+  if(prog.type==='interval'&&R.flatPhases.length>0){
+    R.phaseTimeLeft--;
+    if(R.phaseTimeLeft<=5&&R.phaseTimeLeft>0){shortBeep();}
+    if(R.phaseTimeLeft<=0){
+      R.phaseIdx++;
+      if(R.phaseIdx>=R.flatPhases.length){finishRun();return;}
+      var np=R.flatPhases[R.phaseIdx];R.phaseTimeLeft=np.dur;
+      longBeep();var pmsg=T().runPhaseChange+' '+np.name+'!';
+      if(np.dur>=60)pmsg+=' '+Math.floor(np.dur/60)+' '+T().runMin+'.';else pmsg+=' '+np.dur+' '+T().runSec+'.';
+      if(np.pace>0)pmsg+=' '+T().runTargetPace+' '+fPace(np.pace)+'.';
+      bark(pmsg);
+    }
+    /* Interval pace feedback every 15s */
+    if(R.phaseTimeLeft>0&&R.phaseTimeLeft%15===0){
+      var cp=R.flatPhases[R.phaseIdx];
+      if(cp.pace>0){var curPace=runPaceMinKm();
+        if(curPace>0){if(curPace>cp.pace+0.3)bark(T().runFaster);else if(curPace<cp.pace-0.3)bark(T().runSlower);else if(R.phaseTimeLeft%30===0)bark(T().runOnPace);}
+      }else if(elSec>0&&R.phaseTimeLeft%30===0&&elSec!==R.lastSpeechAt){R.lastSpeechAt=elSec;runSpeech(elSec);}
+    }
+  }else{
+  if(elSec>0&&elSec%30===0&&elSec!==R.lastSpeechAt){R.lastSpeechAt=elSec;runSpeech(elSec);}}
+  if(prog.type==='cooper'||prog.type==='time'){
+    var target=prog.type==='cooper'?720:(prog.targetTime||9999);
+    var rem=target-elSec;
+    if(rem===60)bark(T().runOneMinLeft);
+    else if(rem===10)bark(T().runTenSec);
+    else if(rem<=5&&rem>0){shortBeep();bark(T().cd[rem]||'');}
+  }
+  render();updateLockInfo();
+}
+
+function runSpeech(elSec){
+  var mins=Math.floor(elSec/60),secs=elSec%60,distM=Math.round(R.distance),pace=runPace(),pMK=runPaceMinKm();
+  var msg='';
+  msg+=mins+' '+T().runMin+(secs>0?', '+secs+' '+T().runSec:'')+'. ';
+  msg+=distM+' '+T().runMeters+'. ';
+  if(R.prog.type==='cooper'){msg+=T().runProjected+' '+Math.round(runProjectedCooper())+' '+T().runMeters+'. ';}
+  if(pMK>0)msg+=T().runPace+' '+fPace(pMK)+' '+T().runPerKm+'. ';
+  if(R.prevPace>0&&pace>0){
+    var diff=(pace-R.prevPace)/R.prevPace;
+    if(diff>0.05)msg+=rndFrom(T().runPaceUp);
+    else if(diff<-0.05)msg+=rndFrom(T().runPaceDown);
+    else msg+=rndFrom(T().runPaceSteady);
+  }
+  R.prevPace=pace;bark(msg);
+}
+
+function pauseRun(){if(R.phase!=='active')return;R.phase='paused';R.pausedAt=Date.now();clearAllTimers();stopGPS();bark(T().pause);render();}
+function resumeRun(){if(R.phase!=='paused')return;R.pauseTotal+=(Date.now()-R.pausedAt);R.phase='active';startGPS();clearAllTimers();timer=setInterval(runTick,1000);bark(rndFrom(T().resume));longBeep();render();}
+
+function cooperRating(d){if(d>=3000)return T().runCooperExcellent;if(d>=2600)return T().runCooperGood;if(d>=2200)return T().runCooperAvg;if(d>=1800)return T().runCooperBelow;return T().runCooperLow;}
+
+function finishRun(){
+  clearAllTimers();stopGPS();R.phase='finished';R.finishTime=Date.now();releaseWakeLock();
+  var dur=runElapsed(),distM=Math.round(R.distance);
+  var msg=T().runFinish+' '+distM+' '+T().runMeters+'! ';
+  if(R.prog.type==='cooper')msg+=cooperRating(distM);
+  else msg+=Math.floor(dur/60000)+' '+T().runMin+'!';
+  bark(msg);longBeep();setTimeout(function(){longBeep();},300);
+  saveRunHistory({date:new Date().toISOString(),dur:dur,distance:distM,progName:R.prog.name,type:R.prog.type});
+  render();
+}
+function stopRun(){clearAllTimers();stopGPS();R.phase='idle';try{speechSynthesis.cancel();}catch(e){}releaseWakeLock();unlockScreen();}
+
+function goHome(){view='home';stopWorkout();stopRun();if(gpsCheckId)try{navigator.geolocation.clearWatch(gpsCheckId);}catch(e){}gpsCheckId=null;render();}
+function goEdit(prog){editProg=prog?JSON.parse(JSON.stringify(prog)):{id:uid(),name:'Uusi ohjelma',workSec:45,restSec:10,exercises:[]};libSearch='';libCat='';view='edit';render();}
+function goLib(){view='lib';libSearch='';libCat='';editLibCat=-1;editLibEx=-1;staging=null;render();}
+function goLibAt(pos){insertAt=pos;goLib();}
+function goPrep(progId){var progs=getPrograms()||[];prepProg=null;for(var i=0;i<progs.length;i++){if(progs[i].id===progId){prepProg=progs[i];break;}}if(!prepProg)return;view='prep';render();}
+function saveProg(){if(!editProg.name.trim())return;editProg.exercises=editProg.exercises.filter(function(e){return e.name.trim();});if(!editProg.exercises.length)return;var progs=getPrograms()||[];var idx=-1;for(var i=0;i<progs.length;i++){if(progs[i].id===editProg.id){idx=i;break;}}if(idx>=0)progs[idx]=editProg;else progs.push(editProg);savePrograms(progs);goHome();}
+
+function clearAllTimers(){clearInterval(timer);timer=null;}
+function stopWorkout(){clearAllTimers();W.phase='idle';W.paused=false;try{speechSynthesis.cancel();}catch(e){}releaseWakeLock();unlockScreen();}
+function pauseWorkout(){if(W.paused)return;W.paused=true;W.pausedAt=Date.now();clearAllTimers();try{speechSynthesis.cancel();}catch(e){}bark(T().pause);render();}
+function resumeWorkout(){if(!W.paused)return;W.pauseTotal+=(Date.now()-W.pausedAt);W.paused=false;if(W.exercises[W.exIdx].modeType!=='reps'){timer=setInterval(tick,1000);}bark(rndFrom(T().resume));longBeep();render();}
+
+function startWorkout(progId){
+  initAudio();requestWakeLock();var progs=getPrograms()||[];var prog=null;
+  for(var i=0;i<progs.length;i++){if(progs[i].id===progId){prog=progs[i];break;}}
+  if(!prog||!prog.exercises.length)return;
+  W={phase:'active',progName:prog.name,exercises:prog.exercises,workSec:prog.workSec||45,restSec:prog.restSec||10,exIdx:0,mode:'countdown',timeLeft:5,totalStart:Date.now(),exDurs:[],paused:false,pausedAt:0,pauseTotal:0};
+  view='workout';bark(T().start);clearAllTimers();timer=setInterval(tick,1000);render();lockScreen();}
+
+function tick(){
+  W.timeLeft=W.timeLeft-1;var ex=W.exercises[W.exIdx];var exSec=(ex.sec&&ex.sec>0)?ex.sec:W.workSec;
+  if(W.mode==='countdown'){if(W.timeLeft<=0){W.mode='work';if(ex.modeType==='reps'){clearAllTimers();speakExercise(ex,0);longBeep();}else{W.timeLeft=exSec;speakExercise(ex,exSec);longBeep();}}else if(W.timeLeft<=3)shortBeep();}
+  else if(W.mode==='work'){if(W.timeLeft<=0){advanceExercise();}else if(W.timeLeft<=5){shortBeep();bark(T().cd[W.timeLeft]||'');}else if(W.timeLeft===Math.floor(exSec/2)&&exSec>15){bark(rndMotivate());}}
+  else if(W.mode==='rest'){if(W.timeLeft<=0){W.exIdx++;ex=W.exercises[W.exIdx];exSec=(ex.sec&&ex.sec>0)?ex.sec:W.workSec;W.mode='work';if(ex.modeType==='reps'){clearAllTimers();speakExercise(ex,0);longBeep();}else{W.timeLeft=exSec;longBeep();speakExercise(ex,exSec);}}else if(W.timeLeft<=3)shortBeep();}
+  render();updateLockInfo();}
+
+function advanceExercise(){
+  var ex=W.exercises[W.exIdx];var exSec=(ex.sec&&ex.sec>0)?ex.sec:W.workSec;
+  W.exDurs.push({name:ex.name,dur:exSec*1000});
+  if(W.exIdx>=W.exercises.length-1){finishWorkout();return;}
+  W.mode='rest';W.timeLeft=W.restSec;longBeep();
+  if(!timer)timer=setInterval(tick,1000);
+  var next=W.exercises[W.exIdx+1];var msg=rndFrom(T().rest)+' '+T().next+' '+next.name+'!';if(next.weight)msg+=' '+next.weight+' '+T().kg+'!';bark(msg);render();}
+
+function completeReps(){if(W.mode!=='work'||W.exercises[W.exIdx].modeType!=='reps')return;advanceExercise();}
+
+function finishWorkout(){clearAllTimers();W.phase='finished';W.paused=false;releaseWakeLock();unlockScreen();var dur=Date.now()-W.totalStart-W.pauseTotal;var mins=Math.floor(dur/60000);var msg=rndFrom(T().finish).replace('MIN',''+mins);bark(msg);longBeep();setTimeout(function(){longBeep();},300);saveHistory({date:new Date().toISOString(),dur:dur,progName:W.progName,count:W.exercises.length});render();}
+function skipEx(){var ex=W.exercises[W.exIdx];var exSec=(ex.sec&&ex.sec>0)?ex.sec:W.workSec;if(W.mode==='work'){W.exDurs.push({name:ex.name,dur:0});if(W.exIdx>=W.exercises.length-1){finishWorkout();return;}W.mode='rest';W.timeLeft=W.restSec;if(!timer)timer=setInterval(tick,1000);bark(T().skip+' '+W.exercises[W.exIdx+1].name+'! '+T().prepare);}else if(W.mode==='rest'){W.exIdx++;var ex2=W.exercises[W.exIdx];var s2=(ex2.sec&&ex2.sec>0)?ex2.sec:W.workSec;W.mode='work';if(ex2.modeType==='reps'){clearAllTimers();speakExercise(ex2,0);longBeep();}else{W.timeLeft=s2;longBeep();speakExercise(ex2,s2);}}render();}
+
+/* EVENTS */
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-action]');if(!t)return;
+  var a=t.getAttribute('data-action'),v=t.getAttribute('data-val')||'',v2=t.getAttribute('data-val2')||'';
+  e.stopPropagation();
+  if(a==='start')goPrep(v);else if(a==='startfromprep')startWorkout(v);
+  else if(a==='setlang'){setLang(v);}
+  else if(a==='tab'){homeTab=v;render();}
+  else if(a==='edit'){var ps=getPrograms()||[];for(var i=0;i<ps.length;i++){if(ps[i].id===v){goEdit(ps[i]);break;}}}
+  else if(a==='dup'){var ps2=getPrograms()||[];for(var j=0;j<ps2.length;j++){if(ps2[j].id===v){var c=JSON.parse(JSON.stringify(ps2[j]));c.id=uid();c.name+=' (kopio)';ps2.push(c);savePrograms(ps2);render();break;}}}
+  else if(a==='del'){var ps3=(getPrograms()||[]).filter(function(p){return p.id!==v;});savePrograms(ps3);render();}
+  else if(a==='newedit')goEdit(null);else if(a==='back')goHome();else if(a==='save')saveProg();
+  else if(a==='lib')goLibAt(editProg?editProg.exercises.length:0);
+  else if(a==='insertat'){insertAt=+v;goLib();}
+  else if(a==='libcat'){libCat=libCat===v?'':v;render();}
+  else if(a==='libadd'){var lib=getLib();var le=lib[+v].exercises[+v2];staging={name:le.name,detail:le.detail,cat:lib[+v].cat,weight:0,kpl:0,sec:0,side:'',modeType:'time',reps:0};try{navigator.vibrate(30);}catch(x){}render();}
+  else if(a==='libaddcustom'){var cn=document.getElementById('custom_name');if(cn&&cn.value.trim()){staging={name:cn.value.trim(),detail:'',cat:'',weight:0,kpl:0,sec:0,side:'',modeType:'time',reps:0};cn.value='';try{navigator.vibrate(30);}catch(x){}render();}}
+  else if(a==='stageconfirm'){if(staging){var sx={name:staging.name,detail:staging.detail,cat:staging.cat,weight:staging.weight,kpl:staging.kpl,sec:staging.sec,side:staging.side,modeType:staging.modeType,reps:staging.reps};var base=sx.name.replace(/, vasen k\u00e4si$/,'').replace(/, oikea k\u00e4si$/,'').replace(/, vasen puoli$/,'').replace(/, oikea puoli$/,'');if(sx.side==='L')sx.name=base+', vasen k\u00e4si';else if(sx.side==='R')sx.name=base+', oikea k\u00e4si';else if(sx.side==='Lp')sx.name=base+', vasen puoli';else if(sx.side==='Rp')sx.name=base+', oikea puoli';else sx.name=base;var pos=Math.min(insertAt,editProg.exercises.length);editProg.exercises.splice(pos,0,sx);insertAt=pos+1;staging=null;render();}}
+  else if(a==='stagecancel'){staging=null;render();}
+  else if(a==='stageside'){if(staging)staging.side=v;render();}
+  else if(a==='stagemode'){if(staging)staging.modeType=v;render();}
+  else if(a==='libback'){staging=null;view='edit';render();}
+  else if(a==='remex'){editProg.exercises.splice(+v,1);render();}
+  else if(a==='moveex'){var idx=+v,dir=+v2;var exs=editProg.exercises;var tmp=exs[idx];exs[idx]=exs[idx+dir];exs[idx+dir]=tmp;render();}
+  else if(a==='setside'){editProg.exercises[+v].side=v2;var ex=editProg.exercises[+v];var base=ex.name.replace(/, vasen k\u00e4si$/,'').replace(/, oikea k\u00e4si$/,'').replace(/, vasen puoli$/,'').replace(/, oikea puoli$/,'');if(v2==='L')ex.name=base+', vasen k\u00e4si';else if(v2==='R')ex.name=base+', oikea k\u00e4si';else if(v2==='Lp')ex.name=base+', vasen puoli';else if(v2==='Rp')ex.name=base+', oikea puoli';else ex.name=base;render();}
+  else if(a==='setmode'){editProg.exercises[+v].modeType=v2;render();}
+  else if(a==='stop'){stopWorkout();goHome();}else if(a==='skip')skipEx();
+  else if(a==='pause')pauseWorkout();else if(a==='resume')resumeWorkout();
+  else if(a==='lock')lockScreen();else if(a==='reset')goHome();
+  else if(a==='done')completeReps();
+  else if(a==='setmode_main'){mainMode=v;store.set('pt4_mode',v);view=v==='gym'?'home':v==='run'?'runhome':'choose';render();}
+  else if(a==='backtochoose'){view='choose';render();}
+  else if(a==='runstart')goRunPrep(v);
+  else if(a==='rungo')startRunFromPrep();
+  else if(a==='runstop'){stopRun();view='runhome';render();}
+  else if(a==='runpause')pauseRun();
+  else if(a==='runresume')resumeRun();
+  else if(a==='runlock')lockScreen();
+  else if(a==='runreset'){R.phase='idle';view='runhome';render();}
+  else if(a==='runtab'){runHomeTab=v;render();}
+  else if(a==='runedit'){var rps=getRunPrograms()||[];for(var ri=0;ri<rps.length;ri++){if(rps[ri].id===v){editRunProg=JSON.parse(JSON.stringify(rps[ri]));view='runedit';render();break;}}}
+  else if(a==='runnew'){editRunProg={id:uid(),name:'',type:'distance',targetTime:0,targetDistance:5000,desc:''};view='runedit';render();}
+  else if(a==='runsave'){if(editRunProg&&editRunProg.name.trim()){var rps2=getRunPrograms()||[];var ri2=-1;for(var rj=0;rj<rps2.length;rj++){if(rps2[rj].id===editRunProg.id){ri2=rj;break;}}if(ri2>=0)rps2[ri2]=editRunProg;else rps2.push(editRunProg);saveRunPrograms(rps2);view='runhome';render();}}
+  else if(a==='runcancel'){if(gpsCheckId)try{navigator.geolocation.clearWatch(gpsCheckId);}catch(e){}gpsCheckId=null;editRunProg=null;view='runhome';render();}
+  else if(a==='rundel'){var rps3=(getRunPrograms()||[]).filter(function(rp){return rp.id!==v;});saveRunPrograms(rps3);render();}
+  else if(a==='clearrunhist'){store.del('pt4_runhist');render();}
+  else if(a==='addph'){if(editRunProg){editRunProg.phases.push({name:'',dur:60,pace:0,type:'jog'});if(editRunProg.repeatTo<editRunProg.phases.length-1)editRunProg.repeatTo=editRunProg.phases.length-1;render();}}
+  else if(a==='remph'){if(editRunProg){editRunProg.phases.splice(+v,1);if(editRunProg.repeatTo>=editRunProg.phases.length)editRunProg.repeatTo=Math.max(0,editRunProg.phases.length-1);if(editRunProg.repeatFrom>editRunProg.repeatTo)editRunProg.repeatFrom=editRunProg.repeatTo;render();}}
+  else if(a==='moveph'){if(editRunProg){var pi2=+v,dir2=+v2,phs=editRunProg.phases;var tmp2=phs[pi2];phs[pi2]=phs[pi2+dir2];phs[pi2+dir2]=tmp2;render();}}
+  else if(a==='setphtype'){if(editRunProg&&editRunProg.phases[+v])editRunProg.phases[+v].type=v2;render();}
+  else if(a==='clearhist'){store.del('pt4_hist');render();}
+  else if(a==='backup'){exportBackup();}
+  else if(a==='restore'){document.getElementById('restore_file').click();}
+  else if(a==='libedit'){editLibCat=+v;editLibEx=+v2;render();}
+  else if(a==='libnew'){editLibCat=+v;editLibEx=-1;render();}
+  else if(a==='libsaveex'){var ni=document.getElementById('libedit_name'),di=document.getElementById('libedit_detail');if(ni&&ni.value.trim()){var lib2=getLib();if(editLibEx>=0)lib2[editLibCat].exercises[editLibEx]={name:ni.value.trim(),detail:di?di.value:''};else lib2[editLibCat].exercises.push({name:ni.value.trim(),detail:di?di.value:''});saveLib(lib2);editLibCat=-1;editLibEx=-1;}render();}
+  else if(a==='libdelex'){var lib3=getLib();lib3[+v].exercises.splice(+v2,1);saveLib(lib3);render();}
+  else if(a==='libcanceledit'){editLibCat=-1;editLibEx=-1;render();}
+});
+document.addEventListener('change',function(e){var t=e.target,b=t.getAttribute('data-bind');if(!b)return;var idx=t.getAttribute('data-idx');if(b==='progname')editProg.name=t.value;else if(b==='worksec')editProg.workSec=+t.value||45;else if(b==='restsec')editProg.restSec=+t.value||10;else if(b==='exweight')editProg.exercises[+idx].weight=+t.value||0;else if(b==='exkpl')editProg.exercises[+idx].kpl=+t.value||0;else if(b==='exsec')editProg.exercises[+idx].sec=+t.value||0;else if(b==='exreps')editProg.exercises[+idx].reps=+t.value||0;
+  else if(b==='stgweight'){if(staging)staging.weight=+t.value||0;}
+  else if(b==='stgkpl'){if(staging)staging.kpl=+t.value||0;}
+  else if(b==='stgsec'){if(staging)staging.sec=+t.value||0;}
+  else if(b==='stgreps'){if(staging)staging.reps=+t.value||0;}
+  else if(b==='runprogname'){if(editRunProg)editRunProg.name=t.value;}
+  else if(b==='runprogdesc'){if(editRunProg)editRunProg.desc=t.value;}
+  else if(b==='runprogtype'){if(editRunProg){editRunProg.type=t.value;if(t.value==='interval'&&!editRunProg.phases)editRunProg.phases=[];render();}}
+  else if(b==='runprogtargetdist'){if(editRunProg)editRunProg.targetDistance=+t.value||0;}
+  else if(b==='runprogtargettime'){if(editRunProg)editRunProg.targetTime=(+t.value||0)*60;}
+  else if(b==='phname'){if(editRunProg&&editRunProg.phases[+idx])editRunProg.phases[+idx].name=t.value;}
+  else if(b==='phmin'){if(editRunProg&&editRunProg.phases[+idx]){var curSec=editRunProg.phases[+idx].dur%60;editRunProg.phases[+idx].dur=(+t.value||0)*60+curSec;}}
+  else if(b==='phsec'){if(editRunProg&&editRunProg.phases[+idx]){var curMin=Math.floor(editRunProg.phases[+idx].dur/60);editRunProg.phases[+idx].dur=curMin*60+(+t.value||0);}}
+  else if(b==='phpace'){if(editRunProg&&editRunProg.phases[+idx])editRunProg.phases[+idx].pace=parseFloat(t.value)||0;}
+  else if(b==='repeatfrom'){if(editRunProg)editRunProg.repeatFrom=Math.max(0,(+t.value||1)-1);}
+  else if(b==='repeatto'){if(editRunProg)editRunProg.repeatTo=Math.max(0,(+t.value||1)-1);}
+  else if(b==='repeatcount'){if(editRunProg)editRunProg.repeatCount=+t.value||1;}
+  else if(b==='cooldownname'){if(editRunProg&&editRunProg.cooldown)editRunProg.cooldown.name=t.value;}
+  else if(b==='cooldownmin'){if(editRunProg&&editRunProg.cooldown)editRunProg.cooldown.dur=(+t.value||0)*60;}
+});
+document.addEventListener('input',function(e){if(e.target.getAttribute('data-bind')==='libsearch'){libSearch=e.target.value.toLowerCase();render();}});
+
+/* RENDER */
+function render(){var app=document.getElementById('app'),btm=document.getElementById('btm');btm.style.display='none';try{if(view==='choose')renderChoose(app);else if(view==='home')renderHome(app);else if(view==='edit')renderEdit(app);else if(view==='lib')renderLib(app);else if(view==='prep')renderPrep(app,btm);else if(view==='workout')renderWorkout(app,btm);else if(view==='runhome')renderRunHome(app);else if(view==='runedit')renderRunEdit(app);else if(view==='runprep')renderRunPrep(app,btm);else if(view==='runactive')renderRunActive(app,btm);}catch(err){app.innerHTML='<div style="padding:20px;color:#f88">'+esc(err.message)+'</div>';}}
+
+function renderHome(app){
+  var progs=getPrograms()||[],hist=getHistory();
+  var h='<div class="hdr"><button class="hdr-back" data-action="backtochoose">\u2190</button><div style="flex:1"><div class="hdr-title">\u{1F3CB} '+(lang==='fi'?'Kuntosali':'Gym')+'</div></div></div>';
+  h+='<div class="tabs"><button class="tab'+(homeTab==='programs'?' active':'')+'" data-action="tab" data-val="programs">Ohjelmat ('+progs.length+')</button><button class="tab'+(homeTab==='history'?' active':'')+'" data-action="tab" data-val="history">Historia</button></div>';
+  if(homeTab==='programs'){
+    for(var i=0;i<progs.length;i++){var p=progs[i],tt=0;for(var j=0;j<p.exercises.length;j++){var ex=p.exercises[j];if(ex.modeType==='reps')tt+=20;else tt+=((ex.sec&&ex.sec>0)?ex.sec:(p.workSec||45));}tt+=(p.exercises.length-1)*(p.restSec||10);
+      h+='<div class="prog-card" data-action="start" data-val="'+esc(p.id)+'"><div class="prog-card-actions"><button class="abtn" data-action="edit" data-val="'+esc(p.id)+'">\u270F\uFE0F</button><button class="abtn" data-action="dup" data-val="'+esc(p.id)+'">\u{1F4CB}</button>';if(progs.length>1)h+='<button class="abtn del" data-action="del" data-val="'+esc(p.id)+'">\u{1F5D1}</button>';h+='</div><div class="prog-card-name">'+esc(p.name)+'</div><div class="prog-card-info">'+p.exercises.length+' liikett\u00e4 \u00b7 ~'+Math.ceil(tt/60)+' min</div>';if(p.tag)h+='<div class="prog-card-tag">'+esc(p.tag)+'</div>';h+='</div>';}
+    h+='<button class="btn full" style="margin-top:8px" data-action="newedit">+ Uusi ohjelma</button>';
+  }else{if(hist.length>0){for(var k=0;k<hist.length;k++){var hi=hist[k],d=new Date(hi.date);h+='<div class="hist-item"><span>'+fDF(d)+' '+fT(d)+'<br><span style="color:var(--muted);font-size:10px">'+esc(hi.progName)+'</span></span><span style="color:var(--muted)">'+fD(hi.dur)+'</span></div>';}h+='<div style="text-align:center;padding:10px"><button class="btn sm danger" data-action="clearhist">Tyhjenn\u00e4</button></div>';}else h+='<div style="text-align:center;color:var(--muted);padding:40px;font-size:12px">Ei treenej\u00e4 viel\u00e4</div>';}
+  h+='<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:center"><button class="btn sm" data-action="backup" style="flex:1">\u{1F4BE} '+(lang==='fi'?'Varmuuskopio':'Backup')+'</button><button class="btn sm" data-action="restore" style="flex:1">\u{1F4C2} '+(lang==='fi'?'Palauta':'Restore')+'</button></div>';
+  h+='<input type="file" id="restore_file" accept=".json" style="display:none">';
+  h+='<div style="height:30px"></div>';
+  app.innerHTML=h;
+  var rf=document.getElementById('restore_file');if(rf)rf.addEventListener('change',function(ev){if(ev.target.files&&ev.target.files[0])importBackup(ev.target.files[0]);ev.target.value='';});}
+
+function renderPrep(app,btm){
+  var p=prepProg;if(!p){goHome();return;}var equip=getEquipmentList(p.exercises);
+  var tt=0;for(var i=0;i<p.exercises.length;i++){var ex=p.exercises[i];if(ex.modeType==='reps')tt+=20;else tt+=((ex.sec&&ex.sec>0)?ex.sec:(p.workSec||45));}tt+=(p.exercises.length-1)*(p.restSec||10);
+  var h='<div class="hdr"><button class="hdr-back" data-action="back">\u2190</button><div><div class="hdr-title">'+esc(p.name)+'</div><div class="hdr-sub">'+p.exercises.length+' liikett\u00e4 \u00b7 ~'+Math.ceil(tt/60)+' min</div></div></div>';
+  if(equip.length>0){h+='<div class="label">\u{1F3CB}\uFE0F Varaa v\u00e4lineet</div>';for(var j=0;j<equip.length;j++){var eq=equip[j];h+='<div class="prep-item"><div><div style="font-size:12px;color:var(--text)">'+esc(eq.cat)+'</div><div style="font-size:9px;color:var(--muted)">'+esc(eq.names.join(', '))+'</div></div><div style="text-align:right"><div class="prep-weight">'+eq.weight+' kg</div><div class="prep-count">'+eq.kpl+' kpl</div></div></div>';}}
+  else h+='<div class="card" style="text-align:center;color:var(--muted);font-size:12px">\u{1F9CD} Oman kehon painolla</div>';
+  h+='<div class="label" style="margin-top:16px">\u{1F4CB} Liikkeet</div>';
+  for(var k=0;k<p.exercises.length;k++){var ex2=p.exercises[k],exSec=(ex2.sec&&ex2.sec>0)?ex2.sec:(p.workSec||45);h+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;border-bottom:1px solid var(--border)"><span style="color:var(--text)">'+(k+1)+'. '+esc(ex2.name)+'</span><span style="color:var(--muted)">'+(ex2.modeType==='reps'?ex2.reps+' toistoa':exSec+'s')+(ex2.weight?' \u00b7 '+ex2.weight+'kg':'')+'</span></div>';}
+  h+='<div style="height:120px"></div>';
+  btm.style.display='flex';btm.innerHTML='<button class="btn danger" data-action="back">Takaisin</button><button class="btn primary" data-action="startfromprep" data-val="'+esc(p.id)+'">Aloita \u{1F525}</button>';
+  app.innerHTML=h;}
+
+function renderEdit(app){
+  var p=editProg;
+  var h='<div class="hdr"><button class="hdr-back" data-action="back">\u2190</button><div style="flex:1"><div class="hdr-title">Muokkaa</div></div><button class="btn sm green" data-action="save">Tallenna</button></div>';
+  h+='<div class="input-group"><label class="input-label">Ohjelman nimi</label><input class="input" value="'+esc(p.name)+'" data-bind="progname"></div>';
+  h+='<div style="display:flex;gap:8px;margin-bottom:14px"><div class="input-group" style="flex:1"><label class="input-label">Ty\u00f6aika (s)</label><input class="input input-sm" type="number" inputmode="numeric" value="'+(p.workSec||45)+'" data-bind="worksec"></div><div class="input-group" style="flex:1"><label class="input-label">Lepo (s)</label><input class="input input-sm" type="number" inputmode="numeric" value="'+(p.restSec||10)+'" data-bind="restsec"></div></div>';
+  h+='<div class="label" style="margin-bottom:4px">Liikkeet ('+p.exercises.length+')</div>';
+  // Insert button at top
+  h+='<button class="insert-btn" data-action="insertat" data-val="0">+ Lis\u00e4\u00e4 liike t\u00e4h\u00e4n</button>';
+  for(var i=0;i<p.exercises.length;i++){var ex=p.exercises[i];
+    h+='<div class="exi"><div class="exi-name">'+(i+1)+'. '+esc(ex.name)+'</div>';if(ex.cat)h+='<div class="exi-cat">'+esc(ex.cat)+'</div>';
+    h+='<div class="exi-side"><button class="side-btn'+((!ex.side||ex.side==='')?' active':'')+'" data-action="setside" data-val="'+i+'" data-val2="">Molemmat</button><button class="side-btn'+(ex.side==='L'?' active':'')+'" data-action="setside" data-val="'+i+'" data-val2="L">Vasen</button><button class="side-btn'+(ex.side==='R'?' active':'')+'" data-action="setside" data-val="'+i+'" data-val2="R">Oikea</button><button class="side-btn'+(ex.side==='Lp'?' active':'')+'" data-action="setside" data-val="'+i+'" data-val2="Lp">V.puoli</button><button class="side-btn'+(ex.side==='Rp'?' active':'')+'" data-action="setside" data-val="'+i+'" data-val2="Rp">O.puoli</button></div>';
+    h+='<div class="mode-toggle"><button class="mode-btn'+((ex.modeType||'time')==='time'?' active':'')+'" data-action="setmode" data-val="'+i+'" data-val2="time">Aika</button><button class="mode-btn'+(ex.modeType==='reps'?' active':'')+'" data-action="setmode" data-val="'+i+'" data-val2="reps">Toistot</button></div>';
+    h+='<div class="exi-params"><label>kg</label><input class="input input-sm narrow" type="number" inputmode="numeric" value="'+(ex.weight||'')+'" data-bind="exweight" data-idx="'+i+'" placeholder="0"><label>kpl</label><input class="input input-sm narrow" type="number" inputmode="numeric" value="'+(ex.kpl||'')+'" data-bind="exkpl" data-idx="'+i+'" placeholder="0">';
+    if((ex.modeType||'time')==='time'){h+='<label>sek</label><input class="input input-sm narrow" type="number" inputmode="numeric" value="'+(ex.sec||'')+'" data-bind="exsec" data-idx="'+i+'" placeholder="'+(p.workSec||45)+'">';}
+    else{h+='<label>toistot</label><input class="input input-sm narrow" type="number" inputmode="numeric" value="'+(ex.reps||'')+'" data-bind="exreps" data-idx="'+i+'" placeholder="10">';}
+    h+='</div><div class="exi-actions">';if(i>0)h+='<button class="abtn" data-action="moveex" data-val="'+i+'" data-val2="-1">\u2191</button>';if(i<p.exercises.length-1)h+='<button class="abtn" data-action="moveex" data-val="'+i+'" data-val2="1">\u2193</button>';h+='<button class="abtn del" data-action="remex" data-val="'+i+'">\u2715</button></div></div>';
+    // Insert button after each exercise
+    h+='<button class="insert-btn" data-action="insertat" data-val="'+(i+1)+'">+ Lis\u00e4\u00e4 liike t\u00e4h\u00e4n</button>';
+  }
+  if(!p.exercises.length)h+='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">Lis\u00e4\u00e4 ensimm\u00e4inen liike yl\u00e4puolelta</div>';
+  h+='<div style="height:30px"></div>';app.innerHTML=h;}
+
+function renderLib(app){
+  var lib=getLib();
+  var h='<div class="hdr"><button class="hdr-back" data-action="libback">\u2190</button><div style="flex:1"><div class="hdr-title">Liikekirjasto</div></div></div>';
+  // Staging panel - shown when exercise selected
+  if(staging){
+    h+='<div class="staging"><div class="staging-title">\u2795 '+esc(staging.name)+'</div>';
+    if(staging.detail)h+='<div style="font-size:10px;color:var(--muted);margin-bottom:8px">'+esc(staging.detail)+'</div>';
+    // Side
+    h+='<div class="staging-row"><label>Puoli:</label>';
+    var sides=[['','Molemmat'],['L','Vasen'],['R','Oikea'],['Lp','V.puoli'],['Rp','O.puoli']];
+    for(var si=0;si<sides.length;si++){h+='<button class="side-btn'+(staging.side===sides[si][0]?' active':'')+'" data-action="stageside" data-val="'+sides[si][0]+'">'+sides[si][1]+'</button>';}
+    h+='</div>';
+    // Mode
+    h+='<div class="staging-row"><label>Tyyppi:</label><button class="mode-btn'+((staging.modeType||'time')==='time'?' active':'')+'" data-action="stagemode" data-val="time">Aika</button><button class="mode-btn'+(staging.modeType==='reps'?' active':'')+'" data-action="stagemode" data-val="reps">Toistot</button></div>';
+    // Params
+    h+='<div class="staging-row"><label>kg</label><input class="input input-sm narrow" type="number" inputmode="numeric" value="'+(staging.weight||'')+'" data-bind="stgweight" placeholder="0"><label>kpl</label><input class="input input-sm narrow" type="number" inputmode="numeric" value="'+(staging.kpl||'')+'" data-bind="stgkpl" placeholder="0">';
+    if((staging.modeType||'time')==='time'){h+='<label>sek</label><input class="input input-sm narrow" type="number" inputmode="numeric" value="'+(staging.sec||'')+'" data-bind="stgsec" placeholder="'+(editProg.workSec||45)+'">';}
+    else{h+='<label>toistot</label><input class="input input-sm narrow" type="number" inputmode="numeric" value="'+(staging.reps||'')+'" data-bind="stgreps" placeholder="10">';}
+    h+='</div>';
+    // Position indicator
+    h+='<div style="font-size:11px;color:var(--muted);margin:8px 0">Lis\u00e4t\u00e4\u00e4n kohtaan '+(insertAt+1)+'/'+(editProg.exercises.length+1)+'</div>';
+    // Confirm
+    h+='<div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" data-action="stagecancel" style="flex:1">Peruuta</button><button class="btn sm green" data-action="stageconfirm" style="flex:2">Lis\u00e4\u00e4 treeniin \u2713</button></div></div>';
+  }
+  // Custom exercise
+  h+='<div class="card" style="border-color:var(--blue)"><div class="label">Oma liike</div><div style="display:flex;gap:6px"><input id="custom_name" class="input input-sm" placeholder="Kirjoita liikkeen nimi" style="flex:1"><button class="btn sm green" data-action="libaddcustom" style="min-width:48px;min-height:44px;font-size:20px">+</button></div></div>';
+  h+='<div style="margin-bottom:12px"><input class="input" placeholder="\u{1F50D} Hae..." data-bind="libsearch" value="'+esc(libSearch)+'"></div>';
+  if(editLibCat>=0){var isNew=editLibEx<0;var eName=isNew?'':lib[editLibCat].exercises[editLibEx].name;var eDetail=isNew?'':lib[editLibCat].exercises[editLibEx].detail;
+    h+='<div class="card" style="border-color:var(--accent)"><div class="label">'+(isNew?'Uusi liike':'Muokkaa')+'</div><div class="input-group"><input id="libedit_name" class="input input-sm" placeholder="Nimi" value="'+esc(eName)+'"></div><div class="input-group"><input id="libedit_detail" class="input input-sm" placeholder="Kuvaus" value="'+esc(eDetail)+'"></div><div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn sm" data-action="libcanceledit">Peruuta</button><button class="btn sm green" data-action="libsaveex">Tallenna</button></div></div>';}
+  for(var ci=0;ci<lib.length;ci++){var cat=lib[ci];var filtered=[];for(var ei=0;ei<cat.exercises.length;ei++){var ex=cat.exercises[ei];if(libSearch&&ex.name.toLowerCase().indexOf(libSearch)<0&&(ex.detail||'').toLowerCase().indexOf(libSearch)<0)continue;filtered.push({ex:ex,ei:ei});}
+    var isOpen=libCat===cat.cat||!!libSearch;
+    h+='<div class="lib-cat" data-action="libcat" data-val="'+esc(cat.cat)+'">'+cat.icon+' '+esc(cat.cat)+' ('+cat.exercises.length+') '+(isOpen?'\u25BC':'\u25B6')+'</div>';
+    if(isOpen){for(var fi=0;fi<filtered.length;fi++){var item=filtered[fi];h+='<div class="lib-item" style="gap:8px"><div style="flex:1;min-width:0"><div style="font-size:14px;color:var(--text)">'+esc(item.ex.name)+'</div><div style="font-size:10px;color:var(--muted)">'+esc(item.ex.detail)+'</div></div><button class="abtn" data-action="libedit" data-val="'+ci+'" data-val2="'+item.ei+'" style="font-size:12px;min-width:36px;min-height:36px">\u270F</button><button class="lib-add" data-action="libadd" data-val="'+ci+'" data-val2="'+item.ei+'">+</button></div>';}
+      h+='<div style="padding:4px 0"><button class="abtn" data-action="libnew" data-val="'+ci+'" style="width:100%;text-align:center;padding:8px;border-style:dashed">+ Uusi liike</button></div>';}}
+  h+='<div style="height:30px"></div>';app.innerHTML=h;
+  if(staging){var stg=document.querySelector('.staging');if(stg)stg.scrollIntoView({behavior:'smooth',block:'start'});}}
+
+function renderWorkout(app,btm){
+  if(W.phase==='finished'){btm.style.display='none';var tot=elapsedTime();app.innerHTML='<div class="center"><div style="font-size:56px">\u{1F3C6}</div><div class="title">'+T().uiFinished+'</div><div class="stat-row"><div class="stat-card"><div class="stat-val">'+fD(tot)+'</div><div class="stat-label">'+T().uiTime+'</div></div><div class="stat-card"><div class="stat-val">'+W.exercises.length+'</div><div class="stat-label">'+T().uiExercises+'</div></div></div><button class="btn primary" data-action="reset">'+T().uiBack+'</button></div>';return;}
+  btm.style.display='flex';var ex=W.exercises[W.exIdx];var exSec=(ex.sec&&ex.sec>0)?ex.sec:W.workSec;
+  var isW=W.mode==='work',isR=W.mode==='rest',isC=W.mode==='countdown';var warn=isW&&ex.modeType!=='reps'&&W.timeLeft<=5;
+  var isReps=isW&&ex.modeType==='reps';
+  var h2='<div class="w-progress">';for(var i=0;i<W.exercises.length;i++){h2+='<div class="w-dot '+(i<W.exIdx?'done':i===W.exIdx?'current':'')+'"></div>';}h2+='</div><div class="w-total">'+esc(W.progName)+' \u00b7 '+(W.exIdx+1)+'/'+W.exercises.length+' \u00b7 '+fD(elapsedTime())+'</div>';
+  if(W.paused){h2+='<div style="text-align:center;margin-top:40px"><div style="font-size:48px">\u23F8</div><div style="font-family:Oswald,sans-serif;font-size:36px;font-weight:700;color:var(--yellow);margin:16px 0;text-transform:uppercase;letter-spacing:3px">'+T().uiPaused+'</div><div style="font-size:13px;color:var(--muted)">'+esc(ex.name)+'</div></div>';app.innerHTML=h2;btm.innerHTML='<button class="btn danger" data-action="stop">'+T().uiStop+'</button><button class="btn primary" data-action="resume">'+T().uiResume+'</button>';return;}
+  if(isC){h2+='<div style="margin-top:40px"><div class="w-phase work">'+T().uiPrepare+'</div><div class="w-name">'+esc(W.exercises[0].name)+'</div>';var et=equipText(W.exercises[0]);if(et)h2+='<div class="w-weight">'+esc(et)+'</div>';h2+='<div style="font-family:Oswald,sans-serif;font-size:100px;font-weight:700;text-align:center;margin:20px 0;color:var(--text)">'+W.timeLeft+'</div></div>';}
+  else if(isReps){
+    h2+='<div style="margin-top:12px"><div class="w-phase work">'+T().uiWork+'</div><div class="w-name">'+esc(ex.name)+'</div>';
+    if(ex.detail)h2+='<div class="w-detail">'+esc(ex.detail)+'</div>';var et3=equipText(ex);if(et3)h2+='<div class="w-weight">'+esc(et3)+'</div>';
+    h2+='<div class="w-reps"><div class="w-reps-count">'+(ex.reps||10)+'</div><div class="w-reps-label">'+T().uiRepsLabel+'</div></div>';
+    h2+='<button class="btn primary full" data-action="done" style="margin-top:12px;font-size:20px;padding:20px">'+T().uiDone+'</button></div>';}
+  else if(isW){h2+='<div style="margin-top:12px"><div class="w-phase work">'+T().uiWork+'</div><div class="w-name">'+esc(ex.name)+'</div>';if(ex.detail)h2+='<div class="w-detail">'+esc(ex.detail)+'</div>';var et2=equipText(ex);if(et2)h2+='<div class="w-weight">'+esc(et2)+'</div>';var pct=W.timeLeft/exSec,r=90,cx=100,cy=100,circ=2*Math.PI*r;h2+='<div class="w-ring"><svg width="200" height="200"><circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="var(--card2)" stroke-width="8"/><circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+(warn?'var(--yellow)':'var(--accent)')+'" stroke-width="8" stroke-dasharray="'+circ+'" stroke-dashoffset="'+(circ*(1-pct))+'" stroke-linecap="round"/></svg><div class="w-ring-time'+(warn?' warn':'')+'">'+W.timeLeft+'</div></div></div>';}
+  else if(isR){h2+='<div style="margin-top:20px"><div class="w-phase rest">'+T().uiRest+'</div><div class="w-timer-rest">'+W.timeLeft+'</div>';if(W.exIdx+1<W.exercises.length){var next=W.exercises[W.exIdx+1];h2+='<div class="w-next"><div class="w-next-label">'+T().next+'</div><div class="w-next-name">'+esc(next.name)+'</div>';var nt=equipText(next);if(nt)h2+='<div class="w-next-weight">'+esc(nt)+'</div>';h2+='</div>';}h2+='</div>';}
+  app.innerHTML=h2;
+  if(W.paused){btm.innerHTML='<button class="btn danger" data-action="stop">'+T().uiStop+'</button><button class="btn primary" data-action="resume">'+T().uiResume+'</button>';}
+  else{btm.innerHTML='<button class="btn danger" data-action="stop">'+T().uiStop+'</button><button class="btn sm" data-action="pause">'+T().uiPause+'</button><button class="btn sm" data-action="skip">'+T().uiSkip+'</button><button class="btn sm" data-action="lock" style="background:#222;border-color:#444;color:#888">\u{1F512}</button>';}}
+
+
+
+/* ========== RUNNING UI ========== */
+function renderChoose(app){
+  var h='<div style="text-align:center;margin:40px 0 20px"><span style="font-size:48px">\u{1F4AA}</span></div>';
+  h+='<div style="font-family:Oswald,sans-serif;font-size:28px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:var(--accent);text-align:center;margin-bottom:30px">Personal Trainer</div>';
+  h+='<div style="display:flex;gap:12px;padding:0 10px">';
+  h+='<div class="mode-card" data-action="setmode_main" data-val="gym"><div class="mode-card-icon">\u{1F3CB}</div><div class="mode-card-title">'+(lang==='fi'?'Kuntosali':'Gym')+'</div></div>';
+  h+='<div class="mode-card" data-action="setmode_main" data-val="run"><div class="mode-card-icon">\u{1F3C3}</div><div class="mode-card-title">'+(lang==='fi'?'Juoksu':'Running')+'</div></div>';
+  h+='</div>';
+  h+='<div style="display:flex;justify-content:center;gap:6px;margin-top:24px"><button class="side-btn'+(lang==='fi'?' active':'')+'" data-action="setlang" data-val="fi" style="min-width:60px">\u{1F1EB}\u{1F1EE} Suomi</button><button class="side-btn'+(lang==='en'?' active':'')+'" data-action="setlang" data-val="en" style="min-width:60px">\u{1F1EC}\u{1F1E7} English</button></div>';
+  app.innerHTML=h;}
+
+function renderRunHome(app){
+  var progs=getRunPrograms()||[],hist=getRunHistory();
+  var h='<div class="hdr"><button class="hdr-back" data-action="backtochoose">\u2190</button><div style="flex:1"><div class="hdr-title">'+(lang==='fi'?'Juoksuharjoittelu':'Running')+'</div></div></div>';
+  h+='<div class="tabs"><button class="tab'+(runHomeTab==='programs'?' active':'')+'" data-action="runtab" data-val="programs">'+(lang==='fi'?'Ohjelmat':'Programs')+' ('+progs.length+')</button><button class="tab'+(runHomeTab==='history'?' active':'')+'" data-action="runtab" data-val="history">'+(lang==='fi'?'Historia':'History')+'</button></div>';
+  if(runHomeTab==='programs'){
+    for(var i=0;i<progs.length;i++){var rp=progs[i];
+      var typeLabel=rp.type==='cooper'?'Cooper':rp.type==='distance'?fDist(rp.targetDistance):rp.type==='time'?fD(rp.targetTime*1000):rp.type==='interval'?T().runInterval+(rp.phases?' ('+rp.phases.length+')':''):(lang==='fi'?'Vapaa':'Free');
+      h+='<div class="run-prog" data-action="runstart" data-val="'+esc(rp.id)+'"><div class="run-prog-name">'+esc(rp.name)+'</div>';
+      if(rp.desc)h+='<div class="run-prog-desc">'+esc(rp.desc)+'</div>';
+      h+='<div class="run-prog-tag">'+esc(typeLabel)+'</div>';
+      h+='<div class="run-prog-actions"><button class="abtn" data-action="runedit" data-val="'+esc(rp.id)+'">\u270F\uFE0F</button>';
+      if(progs.length>1)h+='<button class="abtn del" data-action="rundel" data-val="'+esc(rp.id)+'">\u{1F5D1}</button>';
+      h+='</div></div>';}
+    h+='<button class="btn full" style="margin-top:8px" data-action="runnew">+ '+(lang==='fi'?'Uusi harjoitus':'New workout')+'</button>';
+  }else{
+    if(hist.length>0){for(var k=0;k<hist.length;k++){var hi=hist[k],d=new Date(hi.date);
+      h+='<div class="hist-item"><span>'+fDF(d)+' '+fT(d)+'<br><span style="color:var(--muted);font-size:10px">'+esc(hi.progName)+'</span></span><span style="color:var(--blue)">'+fDist(hi.distance)+'</span><span style="color:var(--muted)">'+fD(hi.dur)+'</span></div>';}
+      h+='<div style="text-align:center;padding:10px"><button class="btn sm danger" data-action="clearrunhist">'+(lang==='fi'?'Tyhjenn\u00e4':'Clear')+'</button></div>';
+    }else h+='<div style="text-align:center;color:var(--muted);padding:40px;font-size:12px">'+(lang==='fi'?'Ei juoksuja viel\u00e4':'No runs yet')+'</div>';
+  }
+  app.innerHTML=h;}
+
+function renderRunEdit(app){
+  var rp=editRunProg;if(!rp){view='runhome';render();return;}
+  if(!rp.phases)rp.phases=[];
+  if(rp.repeatFrom===undefined)rp.repeatFrom=0;
+  if(rp.repeatTo===undefined)rp.repeatTo=0;
+  if(rp.repeatCount===undefined)rp.repeatCount=1;
+  if(!rp.cooldown)rp.cooldown={name:'',dur:0,pace:0};
+  var h='<div class="hdr"><button class="hdr-back" data-action="runcancel">\u2190</button><div style="flex:1"><div class="hdr-title">'+(lang==='fi'?'Muokkaa harjoitusta':'Edit workout')+'</div></div><button class="btn sm green" data-action="runsave">'+(lang==='fi'?'Tallenna':'Save')+'</button></div>';
+  h+='<div class="input-group"><label class="input-label">'+(lang==='fi'?'Nimi':'Name')+'</label><input class="input" value="'+esc(rp.name)+'" data-bind="runprogname"></div>';
+  h+='<div class="input-group"><label class="input-label">'+(lang==='fi'?'Kuvaus':'Description')+'</label><input class="input input-sm" value="'+esc(rp.desc||'')+'" data-bind="runprogdesc"></div>';
+  h+='<div class="input-group"><label class="input-label">'+(lang==='fi'?'Tyyppi':'Type')+'</label><select class="input" data-bind="runprogtype"><option value="cooper"'+(rp.type==='cooper'?' selected':'')+'>Cooper (12 min)</option><option value="distance"'+(rp.type==='distance'?' selected':'')+'>'+( lang==='fi'?'Tavoitematka':'Target distance')+'</option><option value="time"'+(rp.type==='time'?' selected':'')+'>'+( lang==='fi'?'Tavoiteaika':'Target time')+'</option><option value="interval"'+(rp.type==='interval'?' selected':'')+'>'+( lang==='fi'?'Intervalli':'Interval')+'</option><option value="free"'+(rp.type==='free'?' selected':'')+'>'+( lang==='fi'?'Vapaa':'Free')+'</option></select></div>';
+  if(rp.type==='distance')h+='<div class="input-group"><label class="input-label">'+(lang==='fi'?'Matka (metrit)':'Distance (m)')+'</label><input class="input input-sm" type="number" inputmode="numeric" value="'+(rp.targetDistance||'')+'" data-bind="runprogtargetdist" placeholder="5000"></div>';
+  if(rp.type==='time')h+='<div class="input-group"><label class="input-label">'+(lang==='fi'?'Aika (minuutit)':'Time (min)')+'</label><input class="input input-sm" type="number" inputmode="numeric" value="'+((rp.targetTime||0)/60||'')+'" data-bind="runprogtargettime" placeholder="30"></div>';
+  /* INTERVAL EDITOR */
+  if(rp.type==='interval'){
+    h+='<div class="label" style="margin-top:12px">'+(lang==='fi'?'Vaiheet':'Phases')+' ('+rp.phases.length+')</div>';
+    for(var pi=0;pi<rp.phases.length;pi++){var ph=rp.phases[pi];
+      var inR=pi>=rp.repeatFrom&&pi<=rp.repeatTo&&rp.repeatCount>1;
+      if(pi===rp.repeatFrom&&rp.repeatCount>1)h+='<div class="repeat-card"><div class="repeat-label">\u{1F501} '+(lang==='fi'?'Toistettava osuus':'Repeat section')+'</div>';
+      h+='<div class="phase-card">';
+      h+='<div style="display:flex;gap:4px;align-items:center;margin-bottom:6px"><input class="input input-sm" value="'+esc(ph.name)+'" data-bind="phname" data-idx="'+pi+'" style="flex:1" placeholder="'+(lang==='fi'?'Nimi':'Name')+'"></div>';
+      h+='<div style="display:flex;gap:4px;align-items:center"><label style="font-size:10px;color:var(--muted);white-space:nowrap">'+(lang==='fi'?'Kesto (min:sek)':'Duration')+'</label><input class="input input-sm narrow" type="number" inputmode="numeric" value="'+Math.floor(ph.dur/60)+'" data-bind="phmin" data-idx="'+pi+'" placeholder="0" style="max-width:45px">:<input class="input input-sm narrow" type="number" inputmode="numeric" value="'+(ph.dur%60||'')+'" data-bind="phsec" data-idx="'+pi+'" placeholder="0" style="max-width:45px">';
+      h+='<label style="font-size:10px;color:var(--muted);white-space:nowrap;margin-left:8px">min/km</label><input class="input input-sm narrow" type="number" inputmode="decimal" step="0.1" value="'+(ph.pace||'')+'" data-bind="phpace" data-idx="'+pi+'" placeholder="0" style="max-width:55px"></div>';
+      h+='<div style="display:flex;gap:2px;margin-top:4px;flex-wrap:wrap">';
+      var types=[['warmup','\u{1F525} '+(lang==='fi'?'L\u00e4mmittely':'Warmup')],['jog','\u{1F6B6} '+(lang==='fi'?'H\u00f6lkk\u00e4':'Jog')],['tempo','\u26A1 Tempo'],['sprint','\u{1F3C3} '+(lang==='fi'?'Spurtti':'Sprint')]];
+      for(var ti=0;ti<types.length;ti++){h+='<button class="side-btn'+((ph.type||'jog')===types[ti][0]?' active':'')+'" data-action="setphtype" data-val="'+pi+'" data-val2="'+types[ti][0]+'" style="font-size:9px;padding:3px 8px">'+types[ti][1]+'</button>';}
+      h+='</div>';
+      h+='<div class="phase-actions">';
+      if(pi>0)h+='<button class="abtn" data-action="moveph" data-val="'+pi+'" data-val2="-1">\u2191</button>';
+      if(pi<rp.phases.length-1)h+='<button class="abtn" data-action="moveph" data-val="'+pi+'" data-val2="1">\u2193</button>';
+      h+='<button class="abtn del" data-action="remph" data-val="'+pi+'">\u2715</button></div></div>';
+      if(pi===rp.repeatTo&&rp.repeatCount>1)h+='</div>';
+    }
+    h+='<button class="btn full sm" data-action="addph" style="margin:6px 0;border-style:dashed">+ '+(lang==='fi'?'Lis\u00e4\u00e4 vaihe':'Add phase')+'</button>';
+    /* Repeat settings */
+    if(rp.phases.length>=2){
+      h+='<div class="card" style="border-color:var(--blue)"><div class="label">\u{1F501} '+(lang==='fi'?'Toisto':'Repeat')+'</div>';
+      h+='<div style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)">';
+      h+='<label>'+(lang==='fi'?'Alku':'From')+'</label><input class="input input-sm narrow" type="number" inputmode="numeric" value="'+(rp.repeatFrom+1)+'" data-bind="repeatfrom" min="1" max="'+rp.phases.length+'" style="max-width:45px">';
+      h+='<label>'+(lang==='fi'?'Loppu':'To')+'</label><input class="input input-sm narrow" type="number" inputmode="numeric" value="'+(rp.repeatTo+1)+'" data-bind="repeatto" min="1" max="'+rp.phases.length+'" style="max-width:45px">';
+      h+='<label>'+(lang==='fi'?'Kerrat':'Times')+'</label><input class="input input-sm narrow" type="number" inputmode="numeric" value="'+(rp.repeatCount||1)+'" data-bind="repeatcount" min="1" max="20" style="max-width:45px">';
+      h+='</div></div>';
+    }
+    /* Cooldown */
+    h+='<div class="card"><div class="label">'+(lang==='fi'?'J\u00e4\u00e4hdyttely':'Cooldown')+'</div>';
+    h+='<div style="display:flex;gap:4px;align-items:center"><input class="input input-sm" value="'+esc(rp.cooldown.name||'')+'" data-bind="cooldownname" placeholder="'+(lang==='fi'?'Nimi':'Name')+'" style="flex:1"><label style="font-size:10px;color:var(--muted)">min</label><input class="input input-sm narrow" type="number" inputmode="numeric" value="'+((rp.cooldown.dur||0)/60||'')+'" data-bind="cooldownmin" placeholder="5" style="max-width:50px"></div></div>';
+    /* Total time estimate */
+    var tot=intervalTotalTime(rp);
+    if(tot>0)h+='<div style="text-align:center;font-size:12px;color:var(--muted);margin:8px 0">'+(lang==='fi'?'Arvioitu kesto':'Estimated duration')+': '+fD(tot*1000)+'</div>';
+  }
+  h+='<div style="height:30px"></div>';app.innerHTML=h;}
+
+function renderRunPrep(app,btm){
+  var prog=R.prog;if(!prog){view='runhome';render();return;}
+  var h='<div class="hdr"><button class="hdr-back" data-action="runcancel">\u2190</button><div style="flex:1"><div class="hdr-title">'+T().runPrepTitle+'</div></div></div>';
+  h+='<div style="text-align:center;margin:20px 0"><div style="font-size:40px">\u{1F3C3}</div><div style="font-family:Oswald,sans-serif;font-size:24px;font-weight:700;color:var(--text);margin-top:8px">'+esc(prog.name)+'</div>';
+  if(prog.desc)h+='<div style="font-size:12px;color:var(--muted);margin-top:4px">'+esc(prog.desc)+'</div>';
+  h+='</div>';
+  if(gpsStatus==='ok')h+='<div class="gps-status ok"><span class="gps-dot ok"></span>'+T().runGpsOk+'</div>';
+  else if(gpsStatus==='error')h+='<div class="gps-status error">'+T().runGpsError+'</div>';
+  else h+='<div class="gps-status waiting"><span class="gps-dot wait"></span>'+T().runGpsWait+'</div>';
+  if(prog.type==='cooper'){h+='<div class="card" style="text-align:center"><div class="label">Cooper</div><div style="font-family:Oswald,sans-serif;font-size:20px;color:var(--accent)">12:00</div><div style="font-size:11px;color:var(--muted)">'+(lang==='fi'?'Juokse mahdollisimman pitk\u00e4lle':'Run as far as possible')+'</div></div>';}
+  else if(prog.type==='interval'&&prog.phases&&prog.phases.length>0){
+    h+='<div class="label" style="margin-top:12px">'+(lang==='fi'?'Vaiheet':'Phases')+'</div>';
+    for(var pi=0;pi<prog.phases.length;pi++){var ph=prog.phases[pi];
+      if(pi===(prog.repeatFrom||0)&&(prog.repeatCount||1)>1)h+='<div class="repeat-card"><div class="repeat-label">\u{1F501} '+T().runRepeat+' '+(prog.repeatCount||1)+'x</div>';
+      h+='<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>'+esc(ph.name)+'</span><span style="color:var(--muted)">'+fD(ph.dur*1000)+(ph.pace?' \u00b7 '+fPace(ph.pace)+'/km':'')+'</span></div>';
+      if(pi===(prog.repeatTo||0)&&(prog.repeatCount||1)>1)h+='</div>';
+    }
+    if(prog.cooldown&&prog.cooldown.dur>0)h+='<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>'+esc(prog.cooldown.name)+'</span><span style="color:var(--muted)">'+fD(prog.cooldown.dur*1000)+'</span></div>';
+    var totalSec=intervalTotalTime(prog);
+    h+='<div style="text-align:center;margin-top:8px;font-size:11px;color:var(--muted)">'+(lang==='fi'?'Kokonaisaika':'Total')+': ~'+fD(totalSec*1000)+'</div>';
+  }else{
+    var info='';if(prog.targetDistance)info=fDist(prog.targetDistance);else if(prog.targetTime)info=fD(prog.targetTime*1000);else info=lang==='fi'?'Vapaa':'Free';
+    h+='<div class="card" style="text-align:center"><div style="font-family:Oswald,sans-serif;font-size:20px;color:var(--blue)">'+esc(info)+'</div></div>';
+  }
+  h+='<div style="height:120px"></div>';
+  btm.style.display='flex';
+  btm.innerHTML='<button class="btn danger" data-action="runcancel">'+(lang==='fi'?'Takaisin':'Back')+'</button><button class="btn primary" data-action="rungo"'+(gpsStatus==='error'?' disabled style="opacity:.4"':'')+'>'+( lang==='fi'?'Aloita':'Start')+' \u{1F525}</button>';
+  app.innerHTML=h;
+}
+
+function renderRunActive(app,btm){
+  btm.style.display='flex';
+  var elMs=runElapsed(),elSec=Math.floor(elMs/1000),distM=R.distance,pace=runPaceMinKm(),prog=R.prog;
+  var hasGPS=R.positions.length>0;
+
+  if(R.phase==='finished'){
+    btm.style.display='none';
+    var h='<div class="center"><div style="font-size:56px">\u{1F3C6}</div><div class="title">'+T().runFinish+'</div>';
+    h+='<div class="stat-row"><div class="stat-card"><div class="stat-val" style="color:var(--blue)">'+fDist(distM)+'</div><div class="stat-label">'+T().uiDistance+'</div></div><div class="stat-card"><div class="stat-val">'+fD(elMs)+'</div><div class="stat-label">'+T().uiTime+'</div></div></div>';
+    if(pace>0)h+='<div class="stat-row"><div class="stat-card"><div class="stat-val" style="font-size:20px">'+fPace(pace)+' /km</div><div class="stat-label">'+T().uiPaceLabel+'</div></div></div>';
+    if(prog.type==='cooper'){var rating=cooperRating(Math.round(distM));h+='<div style="text-align:center;margin:12px 0;font-size:18px;font-family:Oswald,sans-serif;color:var(--green)">'+esc(rating)+'</div>';}
+    h+='<button class="btn primary" data-action="runreset">'+T().uiBack+'</button></div>';
+    app.innerHTML=h;return;}
+
+  if(R.phase==='paused'){
+    var hp='<div style="text-align:center;margin-top:30px"><div style="font-size:48px">\u23F8</div><div style="font-family:Oswald,sans-serif;font-size:36px;font-weight:700;color:var(--yellow);margin:16px 0;text-transform:uppercase;letter-spacing:3px">'+T().runPaused+'</div>';
+    hp+='<div class="run-stats-row"><div class="run-stat-sm"><div class="run-stat-val" style="color:var(--blue)">'+fDist(distM)+'</div><div class="run-stat-label">'+T().uiDistance+'</div></div>';
+    hp+='<div class="run-stat-sm"><div class="run-stat-val">'+fD(elMs)+'</div><div class="run-stat-label">'+T().uiElapsed+'</div></div></div></div>';
+    app.innerHTML=hp;
+    btm.innerHTML='<button class="btn danger" data-action="runstop">'+T().uiStop+'</button><button class="btn primary" data-action="runresume">'+T().uiResume+'</button>';return;}
+
+  /* Active running view */
+  var h2='';
+  /* GPS indicator */
+  h2+='<div style="text-align:right;font-size:10px;color:var(--muted)"><span class="gps-dot '+(hasGPS?'ok':'wait')+'"></span>'+(hasGPS?'GPS':'GPS...')+'</div>';
+  /* Program name + elapsed */
+  h2+='<div style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0">'+esc(prog.name)+' \u00b7 '+fD(elMs)+'</div>';
+
+  /* Main distance display */
+  h2+='<div class="run-stat"><div class="run-stat-val" style="font-size:72px;color:var(--blue)">'+fDist(distM)+'</div><div class="run-stat-label">'+T().uiDistance+'</div></div>';
+
+  /* Progress bar for cooper/time/distance */
+  if(prog.type==='cooper'){
+    var pct=Math.min(elSec/720,1);
+    h2+='<div class="cooper-bar"><div class="cooper-fill" style="width:'+(pct*100)+'%;background:linear-gradient(90deg,var(--accent),var(--green))"></div></div>';
+    h2+='<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted)"><span>'+fD(elMs)+'</span><span>12:00</span></div>';
+  }else if(prog.type==='time'&&prog.targetTime>0){
+    var pctT=Math.min(elSec/prog.targetTime,1);
+    h2+='<div class="cooper-bar"><div class="cooper-fill" style="width:'+(pctT*100)+'%;background:var(--blue)"></div></div>';
+    h2+='<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted)"><span>'+fD(elMs)+'</span><span>'+fD(prog.targetTime*1000)+'</span></div>';
+  }else if(prog.type==='distance'&&prog.targetDistance>0){
+    var pctD=Math.min(distM/prog.targetDistance,1);
+    h2+='<div class="cooper-bar"><div class="cooper-fill" style="width:'+(pctD*100)+'%;background:var(--green)"></div></div>';
+    h2+='<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted)"><span>'+fDist(distM)+'</span><span>'+fDist(prog.targetDistance)+'</span></div>';
+  }
+
+  /* Interval phase display */
+  if(prog.type==='interval'&&R.flatPhases.length>0){
+    var cp=R.flatPhases[R.phaseIdx];
+    h2+='<div class="run-phase-indicator">';
+    for(var pi=0;pi<R.flatPhases.length;pi++){h2+='<div class="run-phase-dot '+(pi<R.phaseIdx?'done':pi===R.phaseIdx?'current':'')+'"></div>';}
+    h2+='</div>';
+    h2+='<div style="text-align:center;font-family:Oswald,sans-serif;font-size:22px;font-weight:700;color:'+(cp.type==='sprint'?'var(--accent)':cp.type==='tempo'?'var(--yellow)':'var(--green)')+';margin:4px 0">'+esc(cp.name)+'</div>';
+    if(cp.round>0)h2+='<div style="text-align:center;font-size:10px;color:var(--muted)">'+T().runRepeat+' '+cp.round+'/'+(R.prog.repeatCount||1)+'</div>';
+    h2+='<div style="text-align:center;font-family:Oswald,sans-serif;font-size:48px;font-weight:700;color:var(--text);margin:8px 0;font-variant-numeric:tabular-nums">'+fD(R.phaseTimeLeft*1000)+'</div>';
+    if(cp.pace>0)h2+='<div class="target-pace-display">'+T().runTargetPace+': '+fPace(cp.pace)+'/km'+(pace>0?' \u00b7 '+(lang==='fi'?'Nyt':'Now')+': '+fPace(pace)+'/km':'')+'</div>';
+    /* Progress bar for phase */
+    var pctPh=1-R.phaseTimeLeft/cp.dur;
+    h2+='<div class="cooper-bar"><div class="cooper-fill" style="width:'+(pctPh*100)+'%;background:'+(cp.type==='sprint'?'var(--accent)':cp.type==='tempo'?'var(--yellow)':'var(--green)')+'"></div></div>';
+    h2+='<div style="font-size:10px;color:var(--muted);text-align:center">'+(R.phaseIdx+1)+'/'+R.flatPhases.length+'</div>';
+  }
+
+  /* Stats row */
+  h2+='<div class="run-stats-row">';
+  h2+='<div class="run-stat-sm"><div class="run-stat-val">'+(pace>0?fPace(pace):'--:--')+'</div><div class="run-stat-label">/km</div></div>';
+  if(prog.type==='cooper'){
+    var proj=Math.round(runProjectedCooper());
+    h2+='<div class="run-stat-sm"><div class="run-stat-val" style="color:var(--green)">'+fDist(proj)+'</div><div class="run-stat-label">'+T().uiProjectedLabel+'</div></div>';
+  }
+  if(prog.type==='cooper'||prog.type==='time'){
+    var target2=prog.type==='cooper'?720:(prog.targetTime||0);
+    var rem2=Math.max(0,target2-elSec);
+    h2+='<div class="run-stat-sm"><div class="run-stat-val">'+fD(rem2*1000)+'</div><div class="run-stat-label">'+T().uiRemaining+'</div></div>';
+  }
+  h2+='</div>';
+
+  app.innerHTML=h2;
+  btm.innerHTML='<button class="btn danger" data-action="runstop">'+T().uiStop+'</button><button class="btn sm" data-action="runpause">'+T().uiPause+'</button><button class="btn sm" data-action="runlock" style="background:#222;border-color:#444;color:#888">\u{1F512}</button>';
+}
+
+view=mainMode==='gym'?'home':mainMode==='run'?'runhome':'choose';render();
+})();
+</script>
+</body>
+</html>
