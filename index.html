@@ -51,7 +51,7 @@ body{font-family:'IBM Plex Mono',monospace;background:var(--bg);color:var(--text
 .w-reps{text-align:center;margin:20px 0}.w-reps-count{font-family:'Oswald',sans-serif;font-size:80px;font-weight:700;color:var(--accent)}.w-reps-label{font-size:12px;color:var(--muted);margin-top:4px}
 .stat-row{display:flex;gap:8px;margin-bottom:12px}.stat-card{flex:1;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}.stat-val{font-family:'Oswald',sans-serif;font-size:24px;font-weight:600;color:var(--accent)}.stat-label{font-size:9px;color:var(--muted);margin-top:2px}
 .bottom{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(transparent,var(--bg) 25%);padding:16px 16px max(16px,env(safe-area-inset-bottom));display:flex;justify-content:center;gap:10px;z-index:20}
-#lockscreen{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:100;touch-action:none;user-select:none;-webkit-user-select:none}
+#lockscreen{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:100;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-text-size-adjust:none;pointer-events:auto}
 .lock-info{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;opacity:.3}
 .lock-time{font-family:'Oswald',sans-serif;font-size:48px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
 .lock-name{font-size:11px;color:#888;margin-top:4px;max-width:250px}
@@ -107,6 +107,27 @@ var audioCtx=null;
 function initAudio(){if(audioCtx)return;try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();var b=audioCtx.createBuffer(1,1,22050);var s=audioCtx.createBufferSource();s.buffer=b;s.connect(audioCtx.destination);s.start(0);}catch(e){}}
 function beep(f,d){if(!audioCtx)return;try{var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.value=f;g.gain.value=0.3;o.start();o.stop(audioCtx.currentTime+d/1000);}catch(e){}}
 function shortBeep(){beep(800,150);}function longBeep(){beep(1200,400);}
+function plingOk(){if(!audioCtx)return;try{var t=audioCtx.currentTime;var o1=audioCtx.createOscillator(),o2=audioCtx.createOscillator(),g=audioCtx.createGain();o1.connect(g);o2.connect(g);g.connect(audioCtx.destination);o1.frequency.value=880;o2.frequency.value=1320;g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.01,t+0.4);o1.start(t);o1.stop(t+0.2);o2.start(t+0.15);o2.stop(t+0.4);}catch(e){}}
+function beepSlow(){if(!audioCtx)return;try{var t=audioCtx.currentTime;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.setValueAtTime(600,t);o.frequency.linearRampToValueAtTime(400,t+0.25);g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.01,t+0.3);o.start(t);o.stop(t+0.3);}catch(e){}}
+function beepFast(){if(!audioCtx)return;try{var t=audioCtx.currentTime;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.value=1000;g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.01,t+0.15);o.start(t);o.stop(t+0.15);}catch(e){}}
+
+/* Fast rolling speed: uses last N seconds of GPS for quick reaction */
+var SPEED_WINDOW=8;
+function recentSpeed(){
+  var pts=R.positions;if(pts.length<2)return 0;
+  var now=Date.now(),cutoff=now-SPEED_WINDOW*1000;
+  var recent=[];for(var i=pts.length-1;i>=0;i--){if(pts[i].time>=cutoff)recent.unshift(pts[i]);else break;}
+  if(recent.length<2)return 0;
+  var first=recent[0],last=recent[recent.length-1];
+  var dt=(last.time-first.time)/1000;
+  if(dt<2)return 0;
+  var dd=haversine(first.lat,first.lon,last.lat,last.lon);
+  return dd/dt;
+}
+function recentPaceMinKm(){var s=recentSpeed();return s>0.3?(1000/s/60):0;}
+
+/* Pace feedback state */
+var paceCheckLast=0,paceWasOk=false;
 var fiVoice=null;
 function findVoice(){try{var v=speechSynthesis.getVoices();for(var i=0;i<v.length;i++){if(v[i].lang&&v[i].lang.indexOf('fi')===0){fiVoice=v[i];return;}}}catch(e){}}
 var lang=store.get('pt4_lang')||'fi';
@@ -186,7 +207,16 @@ function releaseWakeLock(){try{if(wakeLock){wakeLock.release();wakeLock=null;}}c
 
 /* LOCK SCREEN */
 var isLocked=false;
-function lockScreen(){isLocked=true;document.getElementById('lockscreen').style.display='block';updateLockInfo();}
+function lockScreen(){
+  isLocked=true;
+  /* Blur any focused input to prevent iOS text input dialogs */
+  try{if(document.activeElement)document.activeElement.blur();}catch(e){}
+  var ls=document.getElementById('lockscreen');
+  ls.style.display='block';
+  /* Prevent any text input behavior */
+  ls.setAttribute('contenteditable','false');
+  updateLockInfo();
+}
 function unlockScreen(){isLocked=false;document.getElementById('lockscreen').style.display='none';var t=document.getElementById('lock-thumb');if(t)t.style.left='4px';}
 function updateRunLockInfo(){
   var mE=document.getElementById('lock-mode'),tE=document.getElementById('lock-time'),nE=document.getElementById('lock-name');
@@ -211,7 +241,15 @@ function updateLockInfo(){
   function onM(e){if(!dragging)return;var dx=(e.touches?e.touches[0]:e).clientX-startX;thumb.style.left=Math.max(4,Math.min(4+dx,trackW-52))+'px';e.preventDefault();}
   function onE(){if(!dragging)return;dragging=false;thumb.classList.remove('dragging');if(parseInt(thumb.style.left||'4')>trackW-80){unlockScreen();try{navigator.vibrate(100);}catch(e){}}else thumb.style.left='4px';}
   if(thumb){thumb.addEventListener('touchstart',onS,{passive:false});thumb.addEventListener('mousedown',onS);document.addEventListener('touchmove',onM,{passive:false});document.addEventListener('mousemove',onM);document.addEventListener('touchend',onE);document.addEventListener('mouseup',onE);}
-  var ls=document.getElementById('lockscreen');if(ls)ls.addEventListener('touchstart',function(e){if(e.target!==thumb&&!thumb.contains(e.target)){e.preventDefault();e.stopPropagation();}},{passive:false});
+  var ls=document.getElementById('lockscreen');if(ls){
+    ls.addEventListener('touchstart',function(e){if(e.target!==thumb&&!thumb.contains(e.target)){e.preventDefault();e.stopPropagation();}},{passive:false});
+    /* Block iOS text editing gestures including undo */
+    ls.addEventListener('beforeinput',function(e){e.preventDefault();},{capture:true});
+    ls.addEventListener('input',function(e){e.preventDefault();},{capture:true});
+    /* Block context menu / callout */
+    ls.addEventListener('contextmenu',function(e){e.preventDefault();});
+    ls.addEventListener('selectstart',function(e){e.preventDefault();});
+  }
 })();
 
 /* ========== LIBRARY ========== */
@@ -484,10 +522,6 @@ function cooperPaceGuidance(elSec,distM,targetDist,totalTime){
   else if(diff>-0.10){msg=T().paceSlowTiny;lastPaceGuidance=-1;}
   else if(diff>-0.20){msg=T().paceSlowSmall;lastPaceGuidance=-1;}
   else{msg=T().paceSlowMed;lastPaceGuidance=-2;}
-  /* Add required pace info */
-  if(Math.abs(diff)>0.03&&reqMinKm>0){
-    msg+=' '+T().paceRequired+' '+fPace(reqMinKm)+'/km.';
-  }
   return msg;
 }
 function fDist(m){return m>=1000?(m/1000).toFixed(2)+' km':Math.round(m)+' m';}
@@ -547,7 +581,7 @@ function startRun(progId){
   if(!prog)return;
   var flat=prog.type==='interval'?flattenPhases(prog):[];
   R={phase:'active',prog:prog,startTime:Date.now(),pauseTotal:0,pausedAt:0,distance:0,positions:[],lastSpeechAt:0,prevPace:0,watchId:null,finishTime:0,phaseIdx:0,phaseTimeLeft:flat.length>0?flat[0].dur:0,flatPhases:flat,roundNum:0};
-  gpsBuf=[];gpsSmoothed=null;gpsLastAccepted=null;
+  gpsBuf=[];gpsSmoothed=null;gpsLastAccepted=null;paceCheckLast=0;paceWasOk=false;
   if(!startGPS()){R.phase='idle';releaseWakeLock();return;}
   view='runactive';
   clearAllTimers();timer=setInterval(runTick,1000);
@@ -593,6 +627,25 @@ function runTick(){
     if(rem===60)bark(T().runOneMinLeft);
     else if(rem===10)bark(T().runTenSec);
     else if(rem<=5&&rem>0){shortBeep();bark(T().cd[rem]||'');}
+  }
+  /* Real-time pace audio feedback every 5s for target-based runs */
+  var hasTarget=(prog.type==='cooper'&&prog.targetDistance>0)||(prog.type==='timed_distance'&&prog.targetDistance>0&&prog.targetTime>0);
+  if(hasTarget&&elSec>10&&elSec%5===0&&elSec!==paceCheckLast){
+    paceCheckLast=elSec;
+    var rSpd=recentSpeed();
+    if(rSpd>0.3){
+      var totalT=prog.type==='cooper'?720:(prog.targetTime||999);
+      var remT=Math.max(1,totalT-elSec);
+      var remD=prog.targetDistance-R.distance;
+      if(remD<=0){/* already reached target */if(!paceWasOk){plingOk();paceWasOk=true;}}
+      else{
+        var reqSpd=remD/remT;
+        var ratio=rSpd/reqSpd;
+        if(ratio>=0.95&&ratio<=1.15){/* on target */if(!paceWasOk){plingOk();}paceWasOk=true;}
+        else if(ratio<0.95){/* too slow */beepSlow();paceWasOk=false;}
+        else{/* too fast, saving energy */beepFast();paceWasOk=false;}
+      }
+    }
   }
   render();updateLockInfo();
 }
@@ -1038,11 +1091,22 @@ function renderRunActive(app,btm){
   /* Main distance display */
   h2+='<div class="run-stat"><div class="run-stat-val" style="font-size:72px;color:var(--blue)">'+fDist(distM)+'</div><div class="run-stat-label">'+T().uiDistance+'</div></div>';
 
-  /* Progress bar for cooper/time/distance */
+  /* Progress bar for cooper/time/distance/timed_distance */
   if(prog.type==='cooper'){
     var pct=Math.min(elSec/720,1);
     h2+='<div class="cooper-bar"><div class="cooper-fill" style="width:'+(pct*100)+'%;background:linear-gradient(90deg,var(--accent),var(--green))"></div></div>';
     h2+='<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted)"><span>'+fD(elMs)+'</span><span>12:00</span></div>';
+    if(prog.targetDistance>0){var pctTD=Math.min(distM/prog.targetDistance,1);
+      h2+='<div class="cooper-bar"><div class="cooper-fill" style="width:'+(pctTD*100)+'%;background:var(--blue)"></div></div>';
+      h2+='<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted)"><span>'+fDist(distM)+'</span><span>'+fDist(prog.targetDistance)+'</span></div>';
+    }
+  }else if(prog.type==='timed_distance'&&prog.targetTime>0&&prog.targetDistance>0){
+    var pctTT=Math.min(elSec/prog.targetTime,1);
+    h2+='<div class="cooper-bar"><div class="cooper-fill" style="width:'+(pctTT*100)+'%;background:linear-gradient(90deg,var(--accent),var(--yellow))"></div></div>';
+    h2+='<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted)"><span>'+fD(elMs)+'</span><span>'+fD(prog.targetTime*1000)+'</span></div>';
+    var pctTDD=Math.min(distM/prog.targetDistance,1);
+    h2+='<div class="cooper-bar"><div class="cooper-fill" style="width:'+(pctTDD*100)+'%;background:var(--blue)"></div></div>';
+    h2+='<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted)"><span>'+fDist(distM)+'</span><span>'+fDist(prog.targetDistance)+'</span></div>';
   }else if(prog.type==='time'&&prog.targetTime>0){
     var pctT=Math.min(elSec/prog.targetTime,1);
     h2+='<div class="cooper-bar"><div class="cooper-fill" style="width:'+(pctT*100)+'%;background:var(--blue)"></div></div>';
@@ -1071,12 +1135,26 @@ function renderRunActive(app,btm){
 
   /* Stats row */
   h2+='<div class="run-stats-row">';
-  h2+='<div class="run-stat-sm"><div class="run-stat-val">'+(pace>0?fPace(pace):'--:--')+'</div><div class="run-stat-label">/km</div></div>';
+  var rPace=recentPaceMinKm();
+  var hasTargetUI=(prog.type==='cooper'&&prog.targetDistance>0)||(prog.type==='timed_distance'&&prog.targetDistance>0&&prog.targetTime>0);
+  var reqPaceUI=0;
+  if(hasTargetUI){var tT=prog.type==='cooper'?720:(prog.targetTime||999);var rT=Math.max(1,tT-elSec);var rD=prog.targetDistance-distM;if(rD>0&&rT>0)reqPaceUI=1000/(rD/rT)/60;}
+  /* Pace color: green=on target, red=too slow, blue=too fast */
+  var paceColor='var(--text)';
+  if(hasTargetUI&&rPace>0&&reqPaceUI>0){
+    if(rPace>reqPaceUI*1.05)paceColor='var(--accent)';
+    else if(rPace<reqPaceUI*0.85)paceColor='var(--blue)';
+    else paceColor='var(--green)';
+  }
+  h2+='<div class="run-stat-sm"><div class="run-stat-val" style="color:'+paceColor+'">'+(rPace>0?fPace(rPace):(pace>0?fPace(pace):'--:--'))+'</div><div class="run-stat-label">'+(rPace>0&&pace>0?(lang==='fi'?'nyt':'now')+' ('+fPace(pace)+' avg)':'/km')+'</div></div>';
   if(prog.type==='cooper'){
     var proj=Math.round(runProjectedCooper());
     h2+='<div class="run-stat-sm"><div class="run-stat-val" style="color:var(--green)">'+fDist(proj)+'</div><div class="run-stat-label">'+T().uiProjectedLabel+'</div></div>';
   }
-  if(prog.type==='cooper'||prog.type==='time'){
+  if(hasTargetUI&&reqPaceUI>0){
+    h2+='<div class="run-stat-sm"><div class="run-stat-val" style="font-size:24px;color:var(--yellow)">'+fPace(reqPaceUI)+'</div><div class="run-stat-label">'+T().paceRequired+'</div></div>';
+  }
+  if(prog.type==='cooper'||prog.type==='time'||prog.type==='timed_distance'){
     var target2=prog.type==='cooper'?720:(prog.targetTime||0);
     var rem2=Math.max(0,target2-elSec);
     h2+='<div class="run-stat-sm"><div class="run-stat-val">'+fD(rem2*1000)+'</div><div class="run-stat-label">'+T().uiRemaining+'</div></div>';
