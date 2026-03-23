@@ -112,7 +112,7 @@ function beepSlow(){if(!audioCtx)return;try{var t=audioCtx.currentTime;var o=aud
 function beepFast(){if(!audioCtx)return;try{var t=audioCtx.currentTime;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.value=1000;g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.01,t+0.15);o.start(t);o.stop(t+0.15);}catch(e){}}
 
 /* Fast rolling speed: uses last N seconds of GPS for quick reaction */
-var SPEED_WINDOW=8;
+var SPEED_WINDOW=6;
 function recentSpeed(){
   var pts=R.positions;if(pts.length<2)return 0;
   var now=Date.now(),cutoff=now-SPEED_WINDOW*1000;
@@ -442,7 +442,7 @@ function haversine(lat1,lon1,lat2,lon2){
   return RR*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 var gpsBuf=[],gpsSmoothed=null,gpsLastAccepted=null;
-var GPS_BUF_SIZE=6,GPS_MIN_MOVE=3,GPS_MAX_ACC=25,GPS_SETTLE_SEC=4;
+var GPS_BUF_SIZE=4,GPS_MIN_MOVE=2,GPS_MAX_ACC=25,GPS_SETTLE_SEC=2;
 
 function weightedCenter(buf){
   /* Accuracy-weighted centroid: weight = 1/acc^2 */
@@ -466,8 +466,8 @@ function addGPSPoint(pos){
   /* Add to rolling buffer */
   gpsBuf.push(p);
   if(gpsBuf.length>GPS_BUF_SIZE)gpsBuf.shift();
-  /* Need at least 3 points to average */
-  if(gpsBuf.length<3)return;
+  /* Need at least 2 points to average */
+  if(gpsBuf.length<2)return;
   /* Compute smoothed position */
   var sm=weightedCenter(gpsBuf);
   if(!sm)return;
@@ -475,7 +475,7 @@ function addGPSPoint(pos){
   /* Compare to last accepted smoothed position */
   if(!gpsLastAccepted){gpsLastAccepted={lat:sm.lat,lon:sm.lon,time:p.time};return;}
   var dt=(p.time-gpsLastAccepted.time)/1000;
-  if(dt<1.5)return;
+  if(dt<1)return;
   var dd=haversine(gpsLastAccepted.lat,gpsLastAccepted.lon,sm.lat,sm.lon);
   /* Max speed filter: 12 m/s = 43 km/h */
   if(dt>0&&dd/dt>12)return;
@@ -490,7 +490,7 @@ function addGPSPoint(pos){
 }
 function startGPS(){
   if(!navigator.geolocation){bark(T().runNoGps);return false;}
-  try{R.watchId=navigator.geolocation.watchPosition(function(pos){addGPSPoint(pos);},function(err){},{enableHighAccuracy:true,maximumAge:2000,timeout:10000});}catch(e){bark(T().runNoGps);return false;}
+  try{R.watchId=navigator.geolocation.watchPosition(function(pos){addGPSPoint(pos);},function(err){},{enableHighAccuracy:true,maximumAge:1000,timeout:8000});}catch(e){bark(T().runNoGps);return false;}
   return true;
 }
 function stopGPS(){if(R.watchId!==null){try{navigator.geolocation.clearWatch(R.watchId);}catch(e){}R.watchId=null;}}
@@ -510,10 +510,11 @@ function cooperPaceGuidance(elSec,distM,targetDist,totalTime){
   var remDist=targetDist-distM;
   if(remDist<=0)return T().paceAhead;
   var requiredPace=remDist/remTime; /* m/s needed */
-  var currentPace=runPace(); /* m/s current */
+  var currentPace=recentSpeed(); /* m/s from recent window - same as pling uses */
+  if(currentPace<0.3)currentPace=runPace(); /* fallback to average if no recent data */
   if(currentPace<0.3)return '';
   var diff=(requiredPace-currentPace)/requiredPace; /* positive = need faster, negative = can slow */
-  var msg='';var reqMinKm=requiredPace>0.3?(1000/requiredPace/60):0;
+  var msg='';
   if(diff>0.20){msg=T().paceSpeedUpBig;lastPaceGuidance=2;}
   else if(diff>0.10){msg=T().paceSpeedUpMed;lastPaceGuidance=2;}
   else if(diff>0.03){msg=T().paceSpeedUpSmall;lastPaceGuidance=1;}
@@ -651,30 +652,33 @@ function runTick(){
 }
 
 function runSpeech(elSec){
-  var mins=Math.floor(elSec/60),secs=elSec%60,distM=Math.round(R.distance),pace=runPace(),pMK=runPaceMinKm();
+  var mins=Math.floor(elSec/60),secs=elSec%60,distM=Math.round(R.distance);
+  var rSpd=recentSpeed(),rPMK=recentPaceMinKm(),avgPMK=runPaceMinKm();
   var prog=R.prog,msg='';
   msg+=mins+' '+T().runMin+(secs>0?', '+secs+' '+T().runSec:'')+'. ';
   msg+=distM+' '+T().runMeters+'. ';
-  if(pMK>0)msg+=T().runPace+' '+fPace(pMK)+' '+T().runPerKm+'. ';
-  /* Cooper with target: smart pacing guidance */
+  /* Report recent pace if available, otherwise average */
+  var reportPace=rPMK>0?rPMK:avgPMK;
+  if(reportPace>0)msg+=T().runPace+' '+fPace(reportPace)+' '+T().runPerKm+'. ';
+  /* Cooper with target: smart pacing guidance (uses recentSpeed internally) */
   if(prog.type==='cooper'&&prog.targetDistance>0){
     msg+=T().runProjected+' '+Math.round(runProjectedCooper())+' '+T().runMeters+'. ';
     msg+=cooperPaceGuidance(elSec,distM,prog.targetDistance,720);
   }
-  /* Cooper without target: just projection + general pace trend */
+  /* Cooper without target: projection + recent pace trend */
   else if(prog.type==='cooper'){
     msg+=T().runProjected+' '+Math.round(runProjectedCooper())+' '+T().runMeters+'. ';
-    if(R.prevPace>0&&pace>0){var d=(pace-R.prevPace)/R.prevPace;if(d>0.05)msg+=rndFrom(T().runPaceUp);else if(d<-0.05)msg+=rndFrom(T().runPaceDown);else msg+=rndFrom(T().runPaceSteady);}
+    if(R.prevPace>0&&rSpd>0.3){var d=(rSpd-R.prevPace)/R.prevPace;if(d>0.05)msg+=rndFrom(T().runPaceUp);else if(d<-0.05)msg+=rndFrom(T().runPaceDown);else msg+=rndFrom(T().runPaceSteady);}
   }
-  /* Timed distance: pacing guidance towards both targets */
+  /* Timed distance: pacing guidance (uses recentSpeed internally) */
   else if(prog.type==='timed_distance'&&prog.targetDistance>0&&prog.targetTime>0){
     msg+=cooperPaceGuidance(elSec,distM,prog.targetDistance,prog.targetTime);
   }
-  /* Other types: general pace trend */
+  /* Other types: recent pace trend */
   else{
-    if(R.prevPace>0&&pace>0){var d2=(pace-R.prevPace)/R.prevPace;if(d2>0.05)msg+=rndFrom(T().runPaceUp);else if(d2<-0.05)msg+=rndFrom(T().runPaceDown);else msg+=rndFrom(T().runPaceSteady);}
+    if(R.prevPace>0&&rSpd>0.3){var d2=(rSpd-R.prevPace)/R.prevPace;if(d2>0.05)msg+=rndFrom(T().runPaceUp);else if(d2<-0.05)msg+=rndFrom(T().runPaceDown);else msg+=rndFrom(T().runPaceSteady);}
   }
-  R.prevPace=pace;bark(msg);
+  R.prevPace=rSpd>0.3?rSpd:runPace();bark(msg);
 }
 
 function pauseRun(){if(R.phase!=='active')return;R.phase='paused';R.pausedAt=Date.now();clearAllTimers();stopGPS();bark(T().pause);render();}
