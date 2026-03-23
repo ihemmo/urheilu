@@ -138,7 +138,11 @@ var TX={fi:{
   runPhase:'Vaihe',runRepeat:'Toista',runTimes:'kertaa',runTargetPace:'Tavoitevauhti',
   runGpsOk:'GPS toimii!',runGpsWait:'Odotetaan GPS-signaalia...',runGpsError:'GPS ei saatavilla',
   runPrepTitle:'Valmistaudu',runPrepGps:'GPS-yhteys',runPhaseChange:'Vaihda!',
-  runFaster:'Nopeammin!',runSlower:'Hidasta!',runOnPace:'Hyv\u00e4 tahti!'
+  runFaster:'Nopeammin!',runSlower:'Hidasta!',runOnPace:'Hyv\u00e4 tahti!',
+  paceSpeedUpTiny:'Kirist\u00e4 tahtia aivan niukasti.',paceSpeedUpSmall:'Nosta vauhtia hieman.',paceSpeedUpMed:'Nosta vauhtia selv\u00e4sti!',paceSpeedUpBig:'Kirist\u00e4 t\u00e4ysill\u00e4!',
+  paceSlowTiny:'Voit hidastaa tosi niukasti.',paceSlowSmall:'Hidasta hieman, s\u00e4\u00e4st\u00e4 energiaa.',paceSlowMed:'Hidasta, olet edell\u00e4 aikataulua.',
+  paceOnTarget:'T\u00e4ydellinen tahti! Pid\u00e4 t\u00e4m\u00e4!',paceAhead:'Hyv\u00e4! Olet edell\u00e4 aikataulua.',paceBehind:'J\u00e4ljess\u00e4 aikataulusta.',
+  paceImproving:'Hienoa! Vauhti paranee!',paceStillBehind:'Viel\u00e4 kiristett\u00e4v\u00e4\u00e4.',paceTarget:'Tavoite:',paceRequired:'Tarvittava:'
 },en:{
   motivate:['Is that all you got?','My grandma lifts heavier!','Push harder! Now!','Come on! Dig deep!','No excuses!','Pain is temporary! Push!','Stop whining! Move!','You can do better than that!','I said move! Not crawl!','Focus! This is not a vacation!','Weak! Give me more!','Do not quit on me!','Faster! Stronger!','You call that effort?','Show me what you got!','Less thinking, more doing!'],
   cd:['Stop!','One!','Two!','Three!','Four!','Five!'],
@@ -164,7 +168,11 @@ var TX={fi:{
   runPhase:'Phase',runRepeat:'Repeat',runTimes:'times',runTargetPace:'Target pace',
   runGpsOk:'GPS active!',runGpsWait:'Waiting for GPS signal...',runGpsError:'GPS unavailable',
   runPrepTitle:'Get ready',runPrepGps:'GPS connection',runPhaseChange:'Switch!',
-  runFaster:'Faster!',runSlower:'Slow down!',runOnPace:'Good pace!'
+  runFaster:'Faster!',runSlower:'Slow down!',runOnPace:'Good pace!',
+  paceSpeedUpTiny:'Pick up the pace just slightly.',paceSpeedUpSmall:'Speed up a little.',paceSpeedUpMed:'Speed up noticeably!',paceSpeedUpBig:'Push hard! Go all out!',
+  paceSlowTiny:'You can slow down just a touch.',paceSlowSmall:'Ease off slightly, save energy.',paceSlowMed:'Slow down, you are ahead of schedule.',
+  paceOnTarget:'Perfect pace! Hold it!',paceAhead:'Great! Ahead of schedule.',paceBehind:'Behind schedule.',
+  paceImproving:'Nice! Catching up!',paceStillBehind:'Still need to push.',paceTarget:'Target:',paceRequired:'Required:'
 }};
 function T(){return TX[lang]||TX.fi;}
 function rndFrom(arr){return arr[Math.floor(Math.random()*arr.length)];}
@@ -339,8 +347,10 @@ function getRunPrograms(){try{var d=JSON.parse(store.get('pt4_runprogs'));return
 function saveRunPrograms(p){store.set('pt4_runprogs',JSON.stringify(p));}
 var DEFAULT_RUN_PROGRAMS=[
   {id:'cooper',name:'Cooperin testi',type:'cooper',targetTime:720,targetDistance:0,desc:'12 min juoksu',phases:[]},
+  {id:'cooper_3k',name:'Cooper 3000m tavoite',type:'cooper',targetTime:720,targetDistance:3000,desc:'Cooper, tavoite 3000m',phases:[]},
   {id:'run_5k',name:'5 km juoksu',type:'distance',targetTime:0,targetDistance:5000,desc:'Juokse 5 km',phases:[]},
   {id:'run_10k',name:'10 km juoksu',type:'distance',targetTime:0,targetDistance:10000,desc:'Juokse 10 km',phases:[]},
+  {id:'run_5k_25min',name:'5 km alle 25 min',type:'timed_distance',targetTime:1500,targetDistance:5000,desc:'5 km tavoiteajalla 25 min',phases:[]},
   {id:'run_30min',name:'30 min juoksu',type:'time',targetTime:1800,targetDistance:0,desc:'Vapaa 30 min juoksu',phases:[]},
   {id:'run_free',name:'Vapaa juoksu',type:'free',targetTime:0,targetDistance:0,desc:'Ei tavoitetta',phases:[]},
   {id:'int_basic',name:'Perusintervalli',type:'interval',targetTime:0,targetDistance:0,
@@ -393,20 +403,52 @@ function haversine(lat1,lon1,lat2,lon2){
   var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
   return RR*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
+var gpsBuf=[],gpsSmoothed=null,gpsLastAccepted=null;
+var GPS_BUF_SIZE=6,GPS_MIN_MOVE=3,GPS_MAX_ACC=25,GPS_SETTLE_SEC=4;
+
+function weightedCenter(buf){
+  /* Accuracy-weighted centroid: weight = 1/acc^2 */
+  var wLat=0,wLon=0,wSum=0;
+  for(var i=0;i<buf.length;i++){
+    var w=1/(buf[i].acc*buf[i].acc);
+    wLat+=buf[i].lat*w;wLon+=buf[i].lon*w;wSum+=w;
+  }
+  if(wSum===0)return null;
+  return{lat:wLat/wSum,lon:wLon/wSum};
+}
+
 function addGPSPoint(pos){
   if(R.phase!=='active')return;
   var p={lat:pos.coords.latitude,lon:pos.coords.longitude,acc:pos.coords.accuracy,time:Date.now()};
-  if(p.acc>30)return;
-  var pts=R.positions;
-  if(pts.length>0){
-    var last=pts[pts.length-1];var dt=(p.time-last.time)/1000;
-    if(dt<1.5)return;
-    var dd=haversine(last.lat,last.lon,p.lat,p.lon);
-    if(dd/dt>12)return;
-    if(dd<0.5)return;
-    R.distance+=dd;
-  }
-  pts.push(p);
+  /* Accept wider range for averaging, reject only very bad */
+  if(p.acc>GPS_MAX_ACC)return;
+  /* Ignore settling period */
+  var elapsed=(p.time-R.startTime-R.pauseTotal)/1000;
+  if(elapsed<GPS_SETTLE_SEC)return;
+  /* Add to rolling buffer */
+  gpsBuf.push(p);
+  if(gpsBuf.length>GPS_BUF_SIZE)gpsBuf.shift();
+  /* Need at least 3 points to average */
+  if(gpsBuf.length<3)return;
+  /* Compute smoothed position */
+  var sm=weightedCenter(gpsBuf);
+  if(!sm)return;
+  gpsSmoothed=sm;
+  /* Compare to last accepted smoothed position */
+  if(!gpsLastAccepted){gpsLastAccepted={lat:sm.lat,lon:sm.lon,time:p.time};return;}
+  var dt=(p.time-gpsLastAccepted.time)/1000;
+  if(dt<1.5)return;
+  var dd=haversine(gpsLastAccepted.lat,gpsLastAccepted.lon,sm.lat,sm.lon);
+  /* Max speed filter: 12 m/s = 43 km/h */
+  if(dt>0&&dd/dt>12)return;
+  /* Min movement: must exceed noise floor */
+  if(dd<GPS_MIN_MOVE)return;
+  /* Min speed: 0.4 m/s = 1.4 km/h, must be intentional movement */
+  if(dt>0&&dd/dt<0.4)return;
+  /* Accept this movement */
+  R.distance+=dd;
+  gpsLastAccepted={lat:sm.lat,lon:sm.lon,time:p.time};
+  R.positions.push({lat:sm.lat,lon:sm.lon,acc:p.acc,time:p.time});
 }
 function startGPS(){
   if(!navigator.geolocation){bark(T().runNoGps);return false;}
@@ -420,6 +462,34 @@ function runElapsed(){if(R.phase==='paused')return R.pausedAt-R.startTime-R.paus
 function runPace(){var el=runElapsed()/1000;return el>3?R.distance/el:0;}
 function runPaceMinKm(){var p=runPace();return p>0.3?(1000/p/60):0;}
 function runProjectedCooper(){var el=runElapsed()/1000;return el>10?R.distance/el*720:0;}
+
+/* Smart pacing guidance for Cooper target / timed_distance */
+var lastPaceGuidance=0; /* track if we told user to speed up/slow, to give follow-up */
+function cooperPaceGuidance(elSec,distM,targetDist,totalTime){
+  if(!targetDist||targetDist<=0)return '';
+  if(elSec<15)return '';
+  var remTime=Math.max(1,totalTime-elSec);
+  var remDist=targetDist-distM;
+  if(remDist<=0)return T().paceAhead;
+  var requiredPace=remDist/remTime; /* m/s needed */
+  var currentPace=runPace(); /* m/s current */
+  if(currentPace<0.3)return '';
+  var diff=(requiredPace-currentPace)/requiredPace; /* positive = need faster, negative = can slow */
+  var msg='';var reqMinKm=requiredPace>0.3?(1000/requiredPace/60):0;
+  if(diff>0.20){msg=T().paceSpeedUpBig;lastPaceGuidance=2;}
+  else if(diff>0.10){msg=T().paceSpeedUpMed;lastPaceGuidance=2;}
+  else if(diff>0.03){msg=T().paceSpeedUpSmall;lastPaceGuidance=1;}
+  else if(diff>0.01){msg=T().paceSpeedUpTiny;lastPaceGuidance=1;}
+  else if(diff>-0.03){msg=T().paceOnTarget;lastPaceGuidance=0;}
+  else if(diff>-0.10){msg=T().paceSlowTiny;lastPaceGuidance=-1;}
+  else if(diff>-0.20){msg=T().paceSlowSmall;lastPaceGuidance=-1;}
+  else{msg=T().paceSlowMed;lastPaceGuidance=-2;}
+  /* Add required pace info */
+  if(Math.abs(diff)>0.03&&reqMinKm>0){
+    msg+=' '+T().paceRequired+' '+fPace(reqMinKm)+'/km.';
+  }
+  return msg;
+}
 function fDist(m){return m>=1000?(m/1000).toFixed(2)+' km':Math.round(m)+' m';}
 function fPace(minkm){if(minkm<=0)return '--:--';var m=Math.floor(minkm);var s=Math.round((minkm-m)*60);return m+':'+pad2(s);}
 
@@ -477,6 +547,7 @@ function startRun(progId){
   if(!prog)return;
   var flat=prog.type==='interval'?flattenPhases(prog):[];
   R={phase:'active',prog:prog,startTime:Date.now(),pauseTotal:0,pausedAt:0,distance:0,positions:[],lastSpeechAt:0,prevPace:0,watchId:null,finishTime:0,phaseIdx:0,phaseTimeLeft:flat.length>0?flat[0].dur:0,flatPhases:flat,roundNum:0};
+  gpsBuf=[];gpsSmoothed=null;gpsLastAccepted=null;
   if(!startGPS()){R.phase='idle';releaseWakeLock();return;}
   view='runactive';
   clearAllTimers();timer=setInterval(runTick,1000);
@@ -492,6 +563,8 @@ function runTick(){
   if(prog.type==='cooper'&&elSec>=720){finishRun();return;}
   if(prog.type==='time'&&prog.targetTime>0&&elSec>=prog.targetTime){finishRun();return;}
   if(prog.type==='distance'&&prog.targetDistance>0&&R.distance>=prog.targetDistance){finishRun();return;}
+  if(prog.type==='timed_distance'&&prog.targetTime>0&&elSec>=prog.targetTime){finishRun();return;}
+  if(prog.type==='timed_distance'&&prog.targetDistance>0&&R.distance>=prog.targetDistance){finishRun();return;}
   /* Interval phase management */
   if(prog.type==='interval'&&R.flatPhases.length>0){
     R.phaseTimeLeft--;
@@ -514,7 +587,7 @@ function runTick(){
     }
   }else{
   if(elSec>0&&elSec%30===0&&elSec!==R.lastSpeechAt){R.lastSpeechAt=elSec;runSpeech(elSec);}}
-  if(prog.type==='cooper'||prog.type==='time'){
+  if(prog.type==='cooper'||prog.type==='time'||prog.type==='timed_distance'){
     var target=prog.type==='cooper'?720:(prog.targetTime||9999);
     var rem=target-elSec;
     if(rem===60)bark(T().runOneMinLeft);
@@ -526,22 +599,33 @@ function runTick(){
 
 function runSpeech(elSec){
   var mins=Math.floor(elSec/60),secs=elSec%60,distM=Math.round(R.distance),pace=runPace(),pMK=runPaceMinKm();
-  var msg='';
+  var prog=R.prog,msg='';
   msg+=mins+' '+T().runMin+(secs>0?', '+secs+' '+T().runSec:'')+'. ';
   msg+=distM+' '+T().runMeters+'. ';
-  if(R.prog.type==='cooper'){msg+=T().runProjected+' '+Math.round(runProjectedCooper())+' '+T().runMeters+'. ';}
   if(pMK>0)msg+=T().runPace+' '+fPace(pMK)+' '+T().runPerKm+'. ';
-  if(R.prevPace>0&&pace>0){
-    var diff=(pace-R.prevPace)/R.prevPace;
-    if(diff>0.05)msg+=rndFrom(T().runPaceUp);
-    else if(diff<-0.05)msg+=rndFrom(T().runPaceDown);
-    else msg+=rndFrom(T().runPaceSteady);
+  /* Cooper with target: smart pacing guidance */
+  if(prog.type==='cooper'&&prog.targetDistance>0){
+    msg+=T().runProjected+' '+Math.round(runProjectedCooper())+' '+T().runMeters+'. ';
+    msg+=cooperPaceGuidance(elSec,distM,prog.targetDistance,720);
+  }
+  /* Cooper without target: just projection + general pace trend */
+  else if(prog.type==='cooper'){
+    msg+=T().runProjected+' '+Math.round(runProjectedCooper())+' '+T().runMeters+'. ';
+    if(R.prevPace>0&&pace>0){var d=(pace-R.prevPace)/R.prevPace;if(d>0.05)msg+=rndFrom(T().runPaceUp);else if(d<-0.05)msg+=rndFrom(T().runPaceDown);else msg+=rndFrom(T().runPaceSteady);}
+  }
+  /* Timed distance: pacing guidance towards both targets */
+  else if(prog.type==='timed_distance'&&prog.targetDistance>0&&prog.targetTime>0){
+    msg+=cooperPaceGuidance(elSec,distM,prog.targetDistance,prog.targetTime);
+  }
+  /* Other types: general pace trend */
+  else{
+    if(R.prevPace>0&&pace>0){var d2=(pace-R.prevPace)/R.prevPace;if(d2>0.05)msg+=rndFrom(T().runPaceUp);else if(d2<-0.05)msg+=rndFrom(T().runPaceDown);else msg+=rndFrom(T().runPaceSteady);}
   }
   R.prevPace=pace;bark(msg);
 }
 
 function pauseRun(){if(R.phase!=='active')return;R.phase='paused';R.pausedAt=Date.now();clearAllTimers();stopGPS();bark(T().pause);render();}
-function resumeRun(){if(R.phase!=='paused')return;R.pauseTotal+=(Date.now()-R.pausedAt);R.phase='active';startGPS();clearAllTimers();timer=setInterval(runTick,1000);bark(rndFrom(T().resume));longBeep();render();}
+function resumeRun(){if(R.phase!=='paused')return;R.pauseTotal+=(Date.now()-R.pausedAt);R.phase='active';gpsBuf=[];gpsSmoothed=null;gpsLastAccepted=null;startGPS();clearAllTimers();timer=setInterval(runTick,1000);bark(rndFrom(T().resume));longBeep();render();}
 
 function cooperRating(d){if(d>=3000)return T().runCooperExcellent;if(d>=2600)return T().runCooperGood;if(d>=2200)return T().runCooperAvg;if(d>=1800)return T().runCooperBelow;return T().runCooperLow;}
 
@@ -804,7 +888,7 @@ function renderRunHome(app){
   h+='<div class="tabs"><button class="tab'+(runHomeTab==='programs'?' active':'')+'" data-action="runtab" data-val="programs">'+(lang==='fi'?'Ohjelmat':'Programs')+' ('+progs.length+')</button><button class="tab'+(runHomeTab==='history'?' active':'')+'" data-action="runtab" data-val="history">'+(lang==='fi'?'Historia':'History')+'</button></div>';
   if(runHomeTab==='programs'){
     for(var i=0;i<progs.length;i++){var rp=progs[i];
-      var typeLabel=rp.type==='cooper'?'Cooper':rp.type==='distance'?fDist(rp.targetDistance):rp.type==='time'?fD(rp.targetTime*1000):rp.type==='interval'?T().runInterval+(rp.phases?' ('+rp.phases.length+')':''):(lang==='fi'?'Vapaa':'Free');
+      var typeLabel=rp.type==='cooper'?(rp.targetDistance?'Cooper \u2192 '+fDist(rp.targetDistance):'Cooper'):rp.type==='distance'?fDist(rp.targetDistance):rp.type==='time'?fD(rp.targetTime*1000):rp.type==='timed_distance'?fDist(rp.targetDistance)+' / '+fD(rp.targetTime*1000):rp.type==='interval'?T().runInterval+(rp.phases?' ('+rp.phases.length+')':''):(lang==='fi'?'Vapaa':'Free');
       h+='<div class="run-prog" data-action="runstart" data-val="'+esc(rp.id)+'"><div class="run-prog-name">'+esc(rp.name)+'</div>';
       if(rp.desc)h+='<div class="run-prog-desc">'+esc(rp.desc)+'</div>';
       h+='<div class="run-prog-tag">'+esc(typeLabel)+'</div>';
@@ -830,9 +914,14 @@ function renderRunEdit(app){
   var h='<div class="hdr"><button class="hdr-back" data-action="runcancel">\u2190</button><div style="flex:1"><div class="hdr-title">'+(lang==='fi'?'Muokkaa harjoitusta':'Edit workout')+'</div></div><button class="btn sm green" data-action="runsave">'+(lang==='fi'?'Tallenna':'Save')+'</button></div>';
   h+='<div class="input-group"><label class="input-label">'+(lang==='fi'?'Nimi':'Name')+'</label><input class="input" value="'+esc(rp.name)+'" data-bind="runprogname"></div>';
   h+='<div class="input-group"><label class="input-label">'+(lang==='fi'?'Kuvaus':'Description')+'</label><input class="input input-sm" value="'+esc(rp.desc||'')+'" data-bind="runprogdesc"></div>';
-  h+='<div class="input-group"><label class="input-label">'+(lang==='fi'?'Tyyppi':'Type')+'</label><select class="input" data-bind="runprogtype"><option value="cooper"'+(rp.type==='cooper'?' selected':'')+'>Cooper (12 min)</option><option value="distance"'+(rp.type==='distance'?' selected':'')+'>'+( lang==='fi'?'Tavoitematka':'Target distance')+'</option><option value="time"'+(rp.type==='time'?' selected':'')+'>'+( lang==='fi'?'Tavoiteaika':'Target time')+'</option><option value="interval"'+(rp.type==='interval'?' selected':'')+'>'+( lang==='fi'?'Intervalli':'Interval')+'</option><option value="free"'+(rp.type==='free'?' selected':'')+'>'+( lang==='fi'?'Vapaa':'Free')+'</option></select></div>';
+  h+='<div class="input-group"><label class="input-label">'+(lang==='fi'?'Tyyppi':'Type')+'</label><select class="input" data-bind="runprogtype"><option value="cooper"'+(rp.type==='cooper'?' selected':'')+'>Cooper (12 min)</option><option value="distance"'+(rp.type==='distance'?' selected':'')+'>'+( lang==='fi'?'Tavoitematka':'Target distance')+'</option><option value="time"'+(rp.type==='time'?' selected':'')+'>'+( lang==='fi'?'Tavoiteaika':'Target time')+'</option><option value="timed_distance"'+(rp.type==='timed_distance'?' selected':'')+'>'+( lang==='fi'?'Matka + aika':'Distance + time')+'</option><option value="interval"'+(rp.type==='interval'?' selected':'')+'>'+( lang==='fi'?'Intervalli':'Interval')+'</option><option value="free"'+(rp.type==='free'?' selected':'')+'>'+( lang==='fi'?'Vapaa':'Free')+'</option></select></div>';
+  if(rp.type==='cooper')h+='<div class="input-group"><label class="input-label">'+(lang==='fi'?'Tavoitematka (m, valinnainen)':'Target distance (m, optional)')+'</label><input class="input input-sm" type="number" inputmode="numeric" value="'+(rp.targetDistance||'')+'" data-bind="runprogtargetdist" placeholder="'+(lang==='fi'?'esim. 3000':'e.g. 3000')+'"></div>';
   if(rp.type==='distance')h+='<div class="input-group"><label class="input-label">'+(lang==='fi'?'Matka (metrit)':'Distance (m)')+'</label><input class="input input-sm" type="number" inputmode="numeric" value="'+(rp.targetDistance||'')+'" data-bind="runprogtargetdist" placeholder="5000"></div>';
   if(rp.type==='time')h+='<div class="input-group"><label class="input-label">'+(lang==='fi'?'Aika (minuutit)':'Time (min)')+'</label><input class="input input-sm" type="number" inputmode="numeric" value="'+((rp.targetTime||0)/60||'')+'" data-bind="runprogtargettime" placeholder="30"></div>';
+  if(rp.type==='timed_distance'){
+    h+='<div class="input-group"><label class="input-label">'+(lang==='fi'?'Tavoitematka (metrit)':'Target distance (m)')+'</label><input class="input input-sm" type="number" inputmode="numeric" value="'+(rp.targetDistance||'')+'" data-bind="runprogtargetdist" placeholder="5000"></div>';
+    h+='<div class="input-group"><label class="input-label">'+(lang==='fi'?'Tavoiteaika (minuutit)':'Target time (min)')+'</label><input class="input input-sm" type="number" inputmode="numeric" value="'+((rp.targetTime||0)/60||'')+'" data-bind="runprogtargettime" placeholder="25"></div>';
+  }
   /* INTERVAL EDITOR */
   if(rp.type==='interval'){
     h+='<div class="label" style="margin-top:12px">'+(lang==='fi'?'Vaiheet':'Phases')+' ('+rp.phases.length+')</div>';
@@ -881,8 +970,23 @@ function renderRunPrep(app,btm){
   if(gpsStatus==='ok')h+='<div class="gps-status ok"><span class="gps-dot ok"></span>'+T().runGpsOk+'</div>';
   else if(gpsStatus==='error')h+='<div class="gps-status error">'+T().runGpsError+'</div>';
   else h+='<div class="gps-status waiting"><span class="gps-dot wait"></span>'+T().runGpsWait+'</div>';
-  if(prog.type==='cooper'){h+='<div class="card" style="text-align:center"><div class="label">Cooper</div><div style="font-family:Oswald,sans-serif;font-size:20px;color:var(--accent)">12:00</div><div style="font-size:11px;color:var(--muted)">'+(lang==='fi'?'Juokse mahdollisimman pitk\u00e4lle':'Run as far as possible')+'</div></div>';}
-  else if(prog.type==='interval'&&prog.phases&&prog.phases.length>0){
+  if(prog.type==='cooper'){
+    h+='<div class="card" style="text-align:center"><div class="label">Cooper</div><div style="font-family:Oswald,sans-serif;font-size:20px;color:var(--accent)">12:00</div>';
+    if(prog.targetDistance>0){
+      var tPace=1000/(prog.targetDistance/720)/60;
+      h+='<div style="font-size:13px;color:var(--blue);margin-top:8px">'+T().paceTarget+' '+fDist(prog.targetDistance)+'</div>';
+      h+='<div style="font-size:11px;color:var(--muted)">'+T().paceRequired+' '+fPace(tPace)+'/km</div>';
+    }else{
+      h+='<div style="font-size:11px;color:var(--muted)">'+(lang==='fi'?'Juokse mahdollisimman pitk\u00e4lle':'Run as far as possible')+'</div>';
+    }
+    h+='</div>';
+  }else if(prog.type==='timed_distance'){
+    var tPace2=prog.targetDistance>0&&prog.targetTime>0?1000/(prog.targetDistance/prog.targetTime)/60:0;
+    h+='<div class="card" style="text-align:center"><div class="label">'+(lang==='fi'?'Matka + aika':'Distance + time')+'</div>';
+    h+='<div style="font-family:Oswald,sans-serif;font-size:20px;color:var(--blue)">'+fDist(prog.targetDistance)+' / '+fD(prog.targetTime*1000)+'</div>';
+    if(tPace2>0)h+='<div style="font-size:11px;color:var(--muted);margin-top:4px">'+T().paceRequired+' '+fPace(tPace2)+'/km</div>';
+    h+='</div>';
+  }else if(prog.type==='interval'&&prog.phases&&prog.phases.length>0){
     h+='<div class="label" style="margin-top:12px">'+(lang==='fi'?'Vaiheet':'Phases')+'</div>';
     for(var pi=0;pi<prog.phases.length;pi++){var ph=prog.phases[pi];
       if(pi===(prog.repeatFrom||0)&&(prog.repeatCount||1)>1)h+='<div class="repeat-card"><div class="repeat-label">\u{1F501} '+T().runRepeat+' '+(prog.repeatCount||1)+'x</div>';
@@ -905,7 +1009,7 @@ function renderRunPrep(app,btm){
 function renderRunActive(app,btm){
   btm.style.display='flex';
   var elMs=runElapsed(),elSec=Math.floor(elMs/1000),distM=R.distance,pace=runPaceMinKm(),prog=R.prog;
-  var hasGPS=R.positions.length>0;
+  var hasGPS=gpsBuf.length>=3;
 
   if(R.phase==='finished'){
     btm.style.display='none';
@@ -926,7 +1030,8 @@ function renderRunActive(app,btm){
   /* Active running view */
   var h2='';
   /* GPS indicator */
-  h2+='<div style="text-align:right;font-size:10px;color:var(--muted)"><span class="gps-dot '+(hasGPS?'ok':'wait')+'"></span>'+(hasGPS?'GPS':'GPS...')+'</div>';
+  var gpsAcc=gpsBuf.length>0?Math.round(gpsBuf[gpsBuf.length-1].acc):0;
+  h2+='<div style="text-align:right;font-size:10px;color:var(--muted)"><span class="gps-dot '+(hasGPS?'ok':'wait')+'"></span>'+(hasGPS?'GPS \u00b1'+gpsAcc+'m':'GPS...')+'</div>';
   /* Program name + elapsed */
   h2+='<div style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0">'+esc(prog.name)+' \u00b7 '+fD(elMs)+'</div>';
 
