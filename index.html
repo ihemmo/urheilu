@@ -63,6 +63,17 @@ body{font-family:'IBM Plex Mono',monospace;background:var(--bg);color:var(--text
 .lock-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#444;pointer-events:none;z-index:1}
 .lock-hint{font-size:10px;color:#333;margin-top:12px}
 
+/* WELLBEING */
+
+/* WELLBEING */
+.well-cat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:8px;cursor:pointer;transition:all .15s}.well-cat:active{transform:scale(.98);border-color:var(--accent)}
+.well-cat-icon{font-size:28px;margin-bottom:4px}.well-cat-name{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600}.well-cat-desc{font-size:10px;color:var(--muted);margin-top:2px}
+.well-prog{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:6px;cursor:pointer;transition:all .15s}.well-prog:active{transform:scale(.98);border-color:var(--accent)}.well-prog-name{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600}.well-prog-desc{font-size:10px;color:var(--muted);margin-top:2px}
+.well-ring{width:180px;height:180px;margin:12px auto;position:relative;display:flex;align-items:center;justify-content:center}.well-ring svg{position:absolute;top:0;left:0;transform:rotate(-90deg)}.well-ring-text{z-index:1;text-align:center}
+.well-instruction{font-family:'Oswald',sans-serif;font-size:28px;font-weight:700;text-align:center;margin:12px 0;text-transform:uppercase;letter-spacing:2px}
+.well-breathe-in{color:var(--blue)}.well-breathe-hold{color:var(--yellow)}.well-breathe-out{color:var(--green)}.well-exercise{color:var(--accent)}.well-rest{color:var(--muted)}
+.well-round{font-size:11px;color:var(--muted);text-align:center;margin:4px 0}
+
 /* RUNNING */
 
 .phase-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:6px;position:relative}
@@ -100,6 +111,7 @@ body{font-family:'IBM Plex Mono',monospace;background:var(--bg);color:var(--text
 <script>
 (function(){
 'use strict';
+var APP_VERSION='1.1.0';
 var mem={};
 var store={get:function(k){try{var v=localStorage.getItem(k);if(v!==null)return v;}catch(e){}return mem[k]||null;},set:function(k,v){mem[k]=v;try{localStorage.setItem(k,v);}catch(e){}},del:function(k){delete mem[k];try{localStorage.removeItem(k);}catch(e){}}};
 
@@ -134,6 +146,35 @@ var lang=store.get('pt4_lang')||'fi';
 function setLang(l){lang=l;store.set('pt4_lang',l);render();}
 function speak(text){try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(text);u.lang=lang==='fi'?'fi-FI':'en-US';u.rate=1.0;u.pitch=0.7;u.volume=1.0;if(lang==='fi'&&fiVoice)u.voice=fiVoice;speechSynthesis.speak(u);}catch(e){}}
 function bark(text){try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(text);u.lang=lang==='fi'?'fi-FI':'en-US';u.rate=1.05;u.pitch=0.6;u.volume=1.0;if(lang==='fi'&&fiVoice)u.voice=fiVoice;speechSynthesis.speak(u);}catch(e){}}
+function calm(text){try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(text);u.lang=lang==='fi'?'fi-FI':'en-US';u.rate=0.85;u.pitch=1.0;u.volume=0.9;if(lang==='fi'&&fiVoice)u.voice=fiVoice;speechSynthesis.speak(u);}catch(e){}}
+function calmQueue(text){try{var u=new SpeechSynthesisUtterance(text);u.lang=lang==='fi'?'fi-FI':'en-US';u.rate=0.85;u.pitch=1.0;u.volume=0.9;if(lang==='fi'&&fiVoice)u.voice=fiVoice;speechSynthesis.speak(u);}catch(e){}}
+function calmAfter(text,ms){setTimeout(function(){calmQueue(text);},ms);}
+function announceCalm(text,onDone){
+  try{speechSynthesis.cancel();
+    var u=new SpeechSynthesisUtterance(text);u.lang=lang==='fi'?'fi-FI':'en-US';u.rate=0.85;u.pitch=1.0;u.volume=0.9;
+    if(lang==='fi'&&fiVoice)u.voice=fiVoice;
+    var done=false;
+    u.onend=function(){if(!done){done=true;if(onDone)onDone();}};
+    u.onerror=function(){if(!done){done=true;if(onDone)onDone();}};
+    speechSynthesis.speak(u);
+    /* Fallback timeout: estimate ~80ms per character + 1.5s buffer */
+    setTimeout(function(){if(!done){done=true;if(onDone)onDone();}},Math.max(2000,text.length*80+1500));
+  }catch(e){if(onDone)onDone();}
+}
+function announceBark(text,onDone){
+  try{speechSynthesis.cancel();
+    var u=new SpeechSynthesisUtterance(text);u.lang=lang==='fi'?'fi-FI':'en-US';u.rate=1.05;u.pitch=0.6;u.volume=1.0;
+    if(lang==='fi'&&fiVoice)u.voice=fiVoice;
+    var done=false;
+    u.onend=function(){if(!done){done=true;if(onDone)onDone();}};
+    u.onerror=function(){if(!done){done=true;if(onDone)onDone();}};
+    speechSynthesis.speak(u);
+    setTimeout(function(){if(!done){done=true;if(onDone)onDone();}},Math.max(2000,text.length*70+1500));
+  }catch(e){if(onDone)onDone();}
+}
+function softTone(freq,dur){if(!audioCtx)return;try{var t=audioCtx.currentTime;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.connect(g);g.connect(audioCtx.destination);o.frequency.value=freq;g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.01,t+dur/1000);o.start(t);o.stop(t+dur/1000);}catch(e){}}
+function softBowl(){softTone(528,800);}
+function softChime(){softTone(396,500);setTimeout(function(){softTone(528,500);},300);}
 var TX={fi:{
   motivate:['Ei t\u00e4m\u00e4 niin vaikeaa ole!','Koita nyt jaksaa!','Mummo tekisi t\u00e4m\u00e4n nopeammin!','Lis\u00e4\u00e4 tehoa!','T\u00e4m\u00e4k\u00f6 on kaikki?','Ei saa luovuttaa!','Paina kovempaa!','Kyll\u00e4 sin\u00e4 jaksat!','Heikompikin jaksaisi!','Mene! \u00c4l\u00e4 mieti!','Nyt ei valiteta!','Ei ole lupaa lopettaa!','Keskity! T\u00e4m\u00e4 ei ole lomareissu!','Tekosyyt ei auta!','Nyt ei saa pett\u00e4\u00e4!','Pieni kipu ei ket\u00e4\u00e4n tapa!'],
   cd:['Seis!','Yksi!','Kaksi!','Kolme!','Nelj\u00e4!','Viisi!'],
@@ -163,7 +204,13 @@ var TX={fi:{
   paceSpeedUpTiny:'Kirist\u00e4 tahtia aivan niukasti.',paceSpeedUpSmall:'Nosta vauhtia hieman.',paceSpeedUpMed:'Nosta vauhtia selv\u00e4sti!',paceSpeedUpBig:'Kirist\u00e4 t\u00e4ysill\u00e4!',
   paceSlowTiny:'Voit hidastaa tosi niukasti.',paceSlowSmall:'Hidasta hieman, s\u00e4\u00e4st\u00e4 energiaa.',paceSlowMed:'Hidasta, olet edell\u00e4 aikataulua.',
   paceOnTarget:'T\u00e4ydellinen tahti! Pid\u00e4 t\u00e4m\u00e4!',paceAhead:'Hyv\u00e4! Olet edell\u00e4 aikataulua.',paceBehind:'J\u00e4ljess\u00e4 aikataulusta.',
-  paceImproving:'Hienoa! Vauhti paranee!',paceStillBehind:'Viel\u00e4 kiristett\u00e4v\u00e4\u00e4.',paceTarget:'Tavoite:',paceRequired:'Tarvittava:'
+  paceImproving:'Hienoa! Vauhti paranee!',paceStillBehind:'Viel\u00e4 kiristett\u00e4v\u00e4\u00e4.',paceTarget:'Tavoite:',paceRequired:'Tarvittava:',
+  wellTitle:'Hyvinvointi',wellBreathing:'Hengitys',wellMeditation:'Meditaatio',wellVagus:'Vagushermo',wellPomodoro:'Pomodoro',wellYoga:'Jooga',
+  wellInhale:'Sis\u00e4\u00e4n',wellHold:'Pid\u00e4',wellExhale:'Ulos',wellWork:'Ty\u00f6',wellBreak:'Tauko',wellExercise:'Harjoitus',
+  wellRound:'Kierros',wellComplete:'Valmis!',wellStart:'Aloita',wellBreatheDesc:'Hengitysharjoitukset',
+  wellMeditationDesc:'Ohjattu meditaatio',wellVagusDesc:'Vagushermon stimulaatio',wellPomodoroDesc:'Keskittymisjakso',wellYogaDesc:'Jooga-asanat',
+  wellHum:'Hyrise',wellGargle:'Kurlaa',wellColdFace:'Kylm\u00e4 kasvoille',wellEyeMove:'Silm\u00e4liikkeet',wellSing:'Laula',wellEarMassage:'Korvan hieronta',
+  wellRelax:'Rentoudu',wellFocus:'Keskity',wellNextPhase:'Seuraava:',wellSessionDone:'Harjoitus valmis! Hyv\u00e4\u00e4 oloa!',wellGo:'Aloita!'
 },en:{
   motivate:['Is that all you got?','My grandma lifts heavier!','Push harder! Now!','Come on! Dig deep!','No excuses!','Pain is temporary! Push!','Stop whining! Move!','You can do better than that!','I said move! Not crawl!','Focus! This is not a vacation!','Weak! Give me more!','Do not quit on me!','Faster! Stronger!','You call that effort?','Show me what you got!','Less thinking, more doing!'],
   cd:['Stop!','One!','Two!','Three!','Four!','Five!'],
@@ -193,7 +240,13 @@ var TX={fi:{
   paceSpeedUpTiny:'Pick up the pace just slightly.',paceSpeedUpSmall:'Speed up a little.',paceSpeedUpMed:'Speed up noticeably!',paceSpeedUpBig:'Push hard! Go all out!',
   paceSlowTiny:'You can slow down just a touch.',paceSlowSmall:'Ease off slightly, save energy.',paceSlowMed:'Slow down, you are ahead of schedule.',
   paceOnTarget:'Perfect pace! Hold it!',paceAhead:'Great! Ahead of schedule.',paceBehind:'Behind schedule.',
-  paceImproving:'Nice! Catching up!',paceStillBehind:'Still need to push.',paceTarget:'Target:',paceRequired:'Required:'
+  paceImproving:'Nice! Catching up!',paceStillBehind:'Still need to push.',paceTarget:'Target:',paceRequired:'Required:',
+  wellTitle:'Wellbeing',wellBreathing:'Breathing',wellMeditation:'Meditation',wellVagus:'Vagus nerve',wellPomodoro:'Pomodoro',wellYoga:'Yoga',
+  wellInhale:'Inhale',wellHold:'Hold',wellExhale:'Exhale',wellWork:'Work',wellBreak:'Break',wellExercise:'Exercise',
+  wellRound:'Round',wellComplete:'Complete!',wellStart:'Start',wellBreatheDesc:'Breathing exercises',
+  wellMeditationDesc:'Guided meditation',wellVagusDesc:'Vagus nerve stimulation',wellPomodoroDesc:'Focus timer',wellYogaDesc:'Yoga poses',
+  wellHum:'Hum',wellGargle:'Gargle',wellColdFace:'Cold face',wellEyeMove:'Eye movement',wellSing:'Sing',wellEarMassage:'Ear massage',
+  wellRelax:'Relax',wellFocus:'Focus',wellNextPhase:'Next:',wellSessionDone:'Session complete! Feel good!',wellGo:'Go!'
 }};
 function T(){return TX[lang]||TX.fi;}
 function rndFrom(arr){return arr[Math.floor(Math.random()*arr.length)];}
@@ -228,6 +281,7 @@ function updateRunLockInfo(){
 function updateLockInfo(){
   if(!isLocked)return;var mE=document.getElementById('lock-mode'),tE=document.getElementById('lock-time'),nE=document.getElementById('lock-name');if(!mE)return;
   if(R.phase==='active'){updateRunLockInfo();return;}
+  if(WE.phase==='active'){var wph=WE.phases[WE.phaseIdx];mE.textContent=wph?wph.name:'';tE.textContent=WE.timeLeft;nE.textContent=WE.prog?WE.prog.name:'';return;}
   if(W.phase!=='active'){unlockScreen();return;}var ex=W.exercises[W.exIdx];
   if(W.paused){mE.textContent=T().uiPaused;tE.textContent=W.timeLeft;nE.textContent=ex?ex.name:'';}
   else if(W.mode==='work'){mE.textContent=T().uiWork;tE.textContent=ex.modeType==='reps'?(ex.reps||10)+' '+T().uiRepsLabel:W.timeLeft;nE.textContent=ex?ex.name:'';}
@@ -327,7 +381,7 @@ initPrograms();
 var mainMode=store.get('pt4_mode')||'choose',view='home',editProg=null,homeTab='programs',libSearch='',libCat='',prepProg=null,editLibCat=-1,editLibEx=-1;
 var staging=null;
 var insertAt=0;
-var W={phase:'idle',progName:'',exercises:[],workSec:45,restSec:10,exIdx:0,mode:'work',timeLeft:0,totalStart:null,exDurs:[],paused:false,pausedAt:0,pauseTotal:0};
+var W={phase:'idle',progName:'',exercises:[],workSec:45,restSec:10,exIdx:0,mode:'work',timeLeft:0,totalStart:null,exDurs:[],paused:false,pausedAt:0,pauseTotal:0,announcing:false};
 var timer=null;
 
 function pad2(n){return n<10?'0'+n:''+n;}
@@ -344,7 +398,9 @@ function getEquipmentList(exercises){var g={};for(var i=0;i<exercises.length;i++
 /* BACKUP / RESTORE */
 function exportBackup(){
   try{
-    var data={version:2,date:new Date().toISOString(),programs:getPrograms()||[],library:getLib()||[],history:getHistory(),lang:lang,runPrograms:getRunPrograms()||[],runHistory:getRunHistory()};
+    var data={backupVersion:3,appVersion:APP_VERSION,date:new Date().toISOString(),lang:lang,
+      programs:getPrograms()||[],library:getLib()||[],history:getHistory(),
+      runPrograms:getRunPrograms()||[],runHistory:getRunHistory(),wellPrograms:getWellPrograms()||[],wellHistory:getWellHistory()};
     var json=JSON.stringify(data,null,2);
     var blob=new Blob([json],{type:'application/json'});
     var url=URL.createObjectURL(blob);
@@ -360,15 +416,31 @@ function importBackup(file){
   reader.onload=function(ev){
     try{
       var data=JSON.parse(ev.target.result);
+      /* Version compatibility: accept any backup that has programs array */
       if(!data.programs||!Array.isArray(data.programs)){alert(lang==='fi'?'Virheellinen tiedosto':'Invalid file');return;}
-      var msg=lang==='fi'?'Palautetaan varmuuskopio?\n\nOhjelmat: '+data.programs.length+'\nKirjasto: '+(data.library?data.library.length:0)+' ryhm\u00e4\u00e4\nHistoria: '+(data.history?data.history.length:0)+' treeni\u00e4\n\nT\u00e4m\u00e4 korvaa nykyisen datan!':'Restore backup?\n\nPrograms: '+data.programs.length+'\nLibrary: '+(data.library?data.library.length:0)+' categories\nHistory: '+(data.history?data.history.length:0)+' workouts\n\nThis will replace current data!';
+      var gymCount=data.programs.length;
+      var libCount=data.library?data.library.length:0;
+      var histCount=data.history?data.history.length:0;
+      var runCount=data.runPrograms?data.runPrograms.length:0;
+      var runHistCount=data.runHistory?data.runHistory.length:0;
+      var bVer=data.appVersion||data.backupVersion||'?';
+      var msg=lang==='fi'?
+        'Palautetaan varmuuskopio (v'+bVer+')?\n\nKuntosali: '+gymCount+' ohjelmaa\nKirjasto: '+libCount+' ryhm\u00e4\u00e4\nSalihistoria: '+histCount+' treeni\u00e4\nJuoksu: '+runCount+' ohjelmaa\nJuoksuhistoria: '+runHistCount+' suoritusta\n\nT\u00e4m\u00e4 korvaa nykyisen datan!':
+        'Restore backup (v'+bVer+')?\n\nGym: '+gymCount+' programs\nLibrary: '+libCount+' categories\nGym history: '+histCount+' workouts\nRunning: '+runCount+' programs\nRun history: '+runHistCount+' sessions\n\nThis will replace current data!';
       if(!confirm(msg))return;
+      /* Restore with version compatibility */
       savePrograms(data.programs);
       if(data.library&&data.library.length)saveLib(data.library);
       if(data.history&&data.history.length)store.set('pt4_hist',JSON.stringify(data.history));
       if(data.lang)setLang(data.lang);
+      /* Running data: might not exist in older backups */
       if(data.runPrograms&&data.runPrograms.length)saveRunPrograms(data.runPrograms);
       if(data.runHistory&&data.runHistory.length)store.set('pt4_runhist',JSON.stringify(data.runHistory));
+      if(data.wellPrograms&&data.wellPrograms.length)saveWellPrograms(data.wellPrograms);
+      if(data.wellHistory&&data.wellHistory.length)store.set('pt4_wellhist',JSON.stringify(data.wellHistory));
+      /* Migrate: ensure new default programs exist after restore */
+      initRunPrograms();initWellPrograms();
+      alert(lang==='fi'?'Varmuuskopio palautettu!':'Backup restored!');
       render();
     }catch(e){alert((lang==='fi'?'Tiedoston luku ep\u00e4onnistui: ':'File read failed: ')+e.message);}
   };
@@ -698,7 +770,212 @@ function finishRun(){
 }
 function stopRun(){clearAllTimers();stopGPS();R.phase='idle';try{speechSynthesis.cancel();}catch(e){}releaseWakeLock();unlockScreen();}
 
-function goHome(){view='home';stopWorkout();stopRun();if(gpsCheckId)try{navigator.geolocation.clearWatch(gpsCheckId);}catch(e){}gpsCheckId=null;render();}
+
+/* ========== WELLBEING MODULE ========== */
+var WE={phase:'idle',prog:null,phases:[],phaseIdx:0,timeLeft:0,round:1,totalRounds:1,startTime:null,pauseTotal:0,pausedAt:0};
+var wellView='cats',wellCat='',wellHomeTab='programs';
+
+var WELL_CATEGORIES=[
+  {id:'breathing',icon:'\u{1F4A8}',nameKey:'wellBreathing',descKey:'wellBreatheDesc'},
+  {id:'vagus',icon:'\u26A1',nameKey:'wellVagus',descKey:'wellVagusDesc'},
+  {id:'meditation',icon:'\u{1F9D8}',nameKey:'wellMeditation',descKey:'wellMeditationDesc'},
+  {id:'pomodoro',icon:'\u{1F345}',nameKey:'wellPomodoro',descKey:'wellPomodoroDesc'},
+  {id:'yoga',icon:'\u{1F9D8}\u200D\u2642\uFE0F',nameKey:'wellYoga',descKey:'wellYogaDesc'}
+];
+
+/* phase types: inhale, hold, exhale, exercise, rest, work, break, pose */
+var DEFAULT_WELL_PROGRAMS=[
+  /* BREATHING */
+  {id:'br_box',cat:'breathing',name:'Box Breathing',desc:'4-4-4-4 neli\u00f6hengitys',rounds:6,
+    phases:[{name:'Sis\u00e4\u00e4n',dur:4,type:'inhale'},{name:'Pid\u00e4',dur:4,type:'hold'},{name:'Ulos',dur:4,type:'exhale'},{name:'Pid\u00e4',dur:4,type:'hold'}]},
+  {id:'br_478',cat:'breathing',name:'4-7-8 Breathing',desc:'Rauhoittava hengitys',rounds:4,
+    phases:[{name:'Sis\u00e4\u00e4n',dur:4,type:'inhale'},{name:'Pid\u00e4',dur:7,type:'hold'},{name:'Ulos',dur:8,type:'exhale'}]},
+  {id:'br_wim',cat:'breathing',name:'Wim Hof',desc:'30 nopeaa hengityst\u00e4 + pito',rounds:3,
+    phases:[{name:'Nopea sis\u00e4\u00e4n-ulos',dur:90,type:'exercise',instruction:'Hengit\u00e4 nopeasti 30 kertaa',breathRate:3},{name:'Hengit\u00e4 ulos',dur:4,type:'exhale',instruction:'Puhalla kaikki ilma ulos'},{name:'Pid\u00e4 hengityst\u00e4',dur:60,type:'hold',instruction:'Pid\u00e4 keuhkot tyhj\u00e4n\u00e4'},{name:'Palautushengitys',dur:15,type:'inhale',instruction:'Hengit\u00e4 syvaan ja pid\u00e4'}]},
+  {id:'br_calm',cat:'breathing',name:'Rauhoittava hengitys',desc:'Pitk\u00e4 uloshengitys',rounds:8,
+    phases:[{name:'Sis\u00e4\u00e4n',dur:4,type:'inhale'},{name:'Ulos hitaasti',dur:8,type:'exhale'},{name:'Tauko',dur:2,type:'hold'}]},
+  {id:'br_energy',cat:'breathing',name:'Energisoiva hengitys',desc:'Kapaalabhaati-tyylinen',rounds:3,
+    phases:[{name:'Nopeat hengitykset',dur:30,type:'exercise',instruction:'Lyhyet voimakkaat uloshengitykset',breathRate:2},{name:'Tauko',dur:3,type:'rest',instruction:'Rentoudu hetkeksi'},{name:'Syvaan sis\u00e4\u00e4n',dur:5,type:'inhale'},{name:'Pid\u00e4',dur:15,type:'hold'},{name:'Ulos',dur:5,type:'exhale'}]},
+  /* VAGUS NERVE */
+  {id:'vg_hum',cat:'vagus',name:'Hyrin\u00e4harjoitus',desc:'Hyrise matalaa \u00e4\u00e4nt\u00e4, stimuloi vagushermoa',rounds:5,
+    phases:[{name:'Sis\u00e4\u00e4n',dur:4,type:'inhale'},{name:'Hyrise uloshengityksell\u00e4',dur:10,type:'exercise',instruction:'Hyrise matalaa mmm-\u00e4\u00e4nt\u00e4'},{name:'Tauko',dur:3,type:'rest'}]},
+  {id:'vg_gargle',cat:'vagus',name:'Kurlaustekniikka',desc:'Kurlaa vett\u00e4 30s, aktivoi vagushermoa',rounds:3,
+    phases:[{name:'Kurlaa vett\u00e4',dur:30,type:'exercise',instruction:'Kurlaa voimakkaasti vett\u00e4'},{name:'Tauko, hengit\u00e4',dur:15,type:'rest'}]},
+  {id:'vg_cold',cat:'vagus',name:'Kylm\u00e4 kasvoille',desc:'Kylm\u00e4 vesi tai pyyhe kasvoille',rounds:3,
+    phases:[{name:'Syvaan sis\u00e4\u00e4n',dur:5,type:'inhale'},{name:'Kylm\u00e4 kasvoille',dur:30,type:'exercise',instruction:'Paina kylm\u00e4\u00e4 pyyhett\u00e4 kasvoille'},{name:'Hengit\u00e4 normaalisti',dur:15,type:'rest'}]},
+  {id:'vg_eye',cat:'vagus',name:'Silm\u00e4harjoitus',desc:'Hidas katse sivuille, rauhoittaa hermostoa',rounds:5,
+    phases:[{name:'Katso oikealle 30s',dur:30,type:'exercise',instruction:'K\u00e4\u00e4nn\u00e4 silm\u00e4t oikealle, pid\u00e4 p\u00e4\u00e4 paikallaan'},{name:'Keskelle',dur:5,type:'rest'},{name:'Katso vasemmalle 30s',dur:30,type:'exercise',instruction:'K\u00e4\u00e4nn\u00e4 silm\u00e4t vasemmalle, pid\u00e4 p\u00e4\u00e4 paikallaan'},{name:'Keskelle',dur:5,type:'rest'}]},
+  {id:'vg_sing',cat:'vagus',name:'Laulaminen / \u00c4\u00e4ntely',desc:'Laula tai \u00e4\u00e4ntele, v\u00e4r\u00e4hdytt\u00e4\u00e4 vagusta',rounds:4,
+    phases:[{name:'Sis\u00e4\u00e4n',dur:4,type:'inhale'},{name:'Laula pitk\u00e4 \u00e4\u00e4ni',dur:12,type:'exercise',instruction:'Laula pitk\u00e4 aaaa tai ooommm'},{name:'Tauko',dur:4,type:'rest'}]},
+  {id:'vg_ear',cat:'vagus',name:'Korvan hieronta',desc:'Hieronna korvanlehte\u00e4, tragusta ja taakse',rounds:3,
+    phases:[{name:'Hierro korvanlehte\u00e4',dur:30,type:'exercise',instruction:'Hiero korvanlehti\u00e4 peukalolla ja etusormella'},{name:'Tauko',dur:5,type:'rest'},{name:'Paina tragusta',dur:20,type:'exercise',instruction:'Paina korvak\u00e4yt\u00e4v\u00e4n edess\u00e4 olevaa rustokohoumaa'},{name:'Tauko',dur:5,type:'rest'},{name:'Hierro korvan takaa',dur:20,type:'exercise',instruction:'Hierro korvan takana olevaa aluetta'},{name:'Tauko',dur:5,type:'rest'}]},
+  {id:'vg_combo',cat:'vagus',name:'Vagus-kokonaisharjoitus',desc:'Yhdist\u00e4 useita tekniikoita',rounds:1,
+    phases:[{name:'Syvaan sis\u00e4\u00e4n',dur:5,type:'inhale'},{name:'Hyrin\u00e4',dur:15,type:'exercise',instruction:'Hyrise matalaa \u00e4\u00e4nt\u00e4'},{name:'Tauko',dur:5,type:'rest'},
+      {name:'Korvan hieronta',dur:30,type:'exercise',instruction:'Hiero molempia korvanlehti\u00e4'},{name:'Tauko',dur:5,type:'rest'},
+      {name:'Silm\u00e4t oikealle',dur:20,type:'exercise',instruction:'Katso oikealle, p\u00e4\u00e4 paikallaan'},{name:'Keskelle',dur:3,type:'rest'},
+      {name:'Silm\u00e4t vasemmalle',dur:20,type:'exercise',instruction:'Katso vasemmalle, p\u00e4\u00e4 paikallaan'},{name:'Tauko',dur:5,type:'rest'},
+      {name:'4-7-8 hengitys',dur:4,type:'inhale'},{name:'Pid\u00e4',dur:7,type:'hold'},{name:'Ulos',dur:8,type:'exhale'},{name:'Tauko',dur:3,type:'rest'},
+      {name:'Laula ommm',dur:15,type:'exercise',instruction:'Laula pitk\u00e4 om-\u00e4\u00e4ni'},{name:'Rentoudu',dur:10,type:'rest'}]},
+  /* MEDITATION */
+  {id:'med_5',cat:'meditation',name:'5 min meditaatio',desc:'Hiljainen istuminen, kellot',rounds:1,
+    phases:[{name:'Valmistaudu',dur:10,type:'rest',instruction:'Istu mukavasti, sulje silm\u00e4t'},{name:'Meditaatio',dur:280,type:'exercise',instruction:'Keskity hengitykseen'},{name:'Palaa',dur:10,type:'rest',instruction:'Avaa silm\u00e4t hitaasti'}]},
+  {id:'med_10',cat:'meditation',name:'10 min meditaatio',desc:'Pitk\u00e4 hiljainen meditaatio',rounds:1,
+    phases:[{name:'Valmistaudu',dur:15,type:'rest',instruction:'Istu mukavasti, hengit\u00e4 syvaan'},{name:'Meditaatio',dur:570,type:'exercise',instruction:'Keskity hengitykseen'},{name:'Palaa',dur:15,type:'rest',instruction:'Avaa silm\u00e4t hitaasti'}]},
+  {id:'med_body',cat:'meditation',name:'Kehosk\u00e4nnaus',desc:'Huomio kehon eri osiin',rounds:1,
+    phases:[{name:'Jalkapohjat',dur:30,type:'exercise',instruction:'Tunne jalkapohjat'},{name:'S\u00e4\u00e4ret',dur:25,type:'exercise',instruction:'Huomioi s\u00e4\u00e4ret'},{name:'Reidet',dur:25,type:'exercise',instruction:'Tunne reidet'},{name:'Lantio',dur:20,type:'exercise',instruction:'Huomioi lantio'},{name:'Vatsa',dur:25,type:'exercise',instruction:'Tunne vatsa hengityksess\u00e4'},{name:'Rint\u00e4keh\u00e4',dur:25,type:'exercise',instruction:'Tunne rinta'},{name:'K\u00e4det',dur:25,type:'exercise',instruction:'Tunne k\u00e4det'},{name:'Hartiat ja niska',dur:25,type:'exercise',instruction:'P\u00e4\u00e4st\u00e4 j\u00e4nnitys'},{name:'P\u00e4\u00e4 ja kasvot',dur:25,type:'exercise',instruction:'Rentouta kasvot'},{name:'Koko keho',dur:25,type:'exercise',instruction:'Tunne koko keho yhten\u00e4'}]},
+  /* POMODORO */
+  {id:'pom_25',cat:'pomodoro',name:'Pomodoro 25/5',desc:'25 min ty\u00f6 + 5 min tauko',rounds:4,
+    phases:[{name:'Ty\u00f6jakso',dur:1500,type:'work',instruction:'Keskity teht\u00e4v\u00e4\u00e4n'},{name:'Tauko',dur:300,type:'break',instruction:'Lep\u00e4\u00e4, liiku'}]},
+  {id:'pom_50',cat:'pomodoro',name:'Pomodoro 50/10',desc:'50 min ty\u00f6 + 10 min tauko',rounds:2,
+    phases:[{name:'Ty\u00f6jakso',dur:3000,type:'work',instruction:'Sy\u00e4v\u00e4 keskittyminen'},{name:'Tauko',dur:600,type:'break',instruction:'Lep\u00e4\u00e4, venyttele'}]},
+  /* YOGA */
+  {id:'yog_morning',cat:'yoga',name:'Aamujooga 15 min',desc:'Her\u00e4\u00e4 keho lempe\u00e4sti',rounds:1,
+    phases:[
+      {name:'Vuoriasento',dur:30,type:'pose',instruction:'Seiso suorana, hengit\u00e4 syvaan'},
+      {name:'Eteentaivutus',dur:30,type:'pose',instruction:'Taivuta eteen, roikuta k\u00e4si\u00e4'},
+      {name:'Koira alaspain',dur:30,type:'pose',instruction:'K\u00e4det ja jalat maassa, lantio yl\u00f6s'},
+      {name:'Koira yl\u00f6sp\u00e4in',dur:20,type:'pose',instruction:'Lantio alas, rinta yl\u00f6s'},
+      {name:'Soturiasento, vasen jalka edess\u00e4',dur:30,type:'pose',instruction:'Vasen jalka eteen, k\u00e4det yl\u00f6s'},
+      {name:'Soturiasento, oikea jalka edess\u00e4',dur:30,type:'pose',instruction:'Oikea jalka eteen, k\u00e4det yl\u00f6s'},
+      {name:'Kolmio, vasen puoli',dur:25,type:'pose',instruction:'Leve\u00e4 haara, taivuta vasemmalle'},
+      {name:'Kolmio, oikea puoli',dur:25,type:'pose',instruction:'Leve\u00e4 haara, taivuta oikealle'},
+      {name:'Puu, vasen jalka maassa',dur:30,type:'pose',instruction:'Seiso vasemmalla jalalla, oikea jalkapohja reiteen'},
+      {name:'Puu, oikea jalka maassa',dur:30,type:'pose',instruction:'Seiso oikealla jalalla, vasen jalkapohja reiteen'},
+      {name:'Istumataivutus',dur:30,type:'pose',instruction:'Istu, taivuta jalkoja kohti'},
+      {name:'Kiertoistunta, vasen puoli',dur:25,type:'pose',instruction:'Istu, kiert\u00e4 vasemmalle'},
+      {name:'Kiertoistunta, oikea puoli',dur:25,type:'pose',instruction:'Istu, kiert\u00e4 oikealle'},
+      {name:'Savasana',dur:60,type:'rest',instruction:'Makaa sel\u00e4ll\u00e4\u00e4n, rentoudu'}]},
+  {id:'yog_evening',cat:'yoga',name:'Iltajooga 10 min',desc:'Rauhoitu ja venyttele',rounds:1,
+    phases:[
+      {name:'Ristiin istunta',dur:30,type:'pose',instruction:'Istu mukavasti, hengit\u00e4 syvaan'},
+      {name:'Kissaselk\u00e4-lehm\u00e4',dur:30,type:'pose',instruction:'Vuorottele selk\u00e4 py\u00f6re\u00e4ksi ja notkoksi'},
+      {name:'Lantion avaus, vasen puoli',dur:25,type:'pose',instruction:'Aseta vasen polvi alas, ty\u00f6nn\u00e4 lantiota eteen'},
+      {name:'Lantion avaus, oikea puoli',dur:25,type:'pose',instruction:'Aseta oikea polvi alas, ty\u00f6nn\u00e4 lantiota eteen'},
+      {name:'Kyyhky, vasen jalka edess\u00e4',dur:30,type:'pose',instruction:'Vasen s\u00e4\u00e4ri edess\u00e4 poikittain, oikea jalka taakse'},
+      {name:'Kyyhky, oikea jalka edess\u00e4',dur:30,type:'pose',instruction:'Oikea s\u00e4\u00e4ri edess\u00e4 poikittain, vasen jalka taakse'},
+      {name:'Makuukierto, vasen puoli',dur:25,type:'pose',instruction:'Sel\u00e4ll\u00e4\u00e4n, vie polvet vasemmalle'},
+      {name:'Makuukierto, oikea puoli',dur:25,type:'pose',instruction:'Sel\u00e4ll\u00e4\u00e4n, vie polvet oikealle'},
+      {name:'Jalat sein\u00e4lle',dur:40,type:'pose',instruction:'Makaa sel\u00e4ll\u00e4\u00e4n, jalat sein\u00e4\u00e4 vasten'},
+      {name:'Savasana',dur:60,type:'rest',instruction:'Makaa sel\u00e4ll\u00e4\u00e4n, p\u00e4\u00e4st\u00e4 kaikesta irti'}]}
+];
+
+function getWellPrograms(){try{var d=JSON.parse(store.get('pt4_well'));return(d&&d.length)?d:null;}catch(e){return null;}}
+function saveWellPrograms(p){store.set('pt4_well',JSON.stringify(p));}
+function initWellPrograms(){
+  if(!getWellPrograms())saveWellPrograms(JSON.parse(JSON.stringify(DEFAULT_WELL_PROGRAMS)));
+  /* Always update default programs to latest version */
+  var wp=getWellPrograms();var defIds={};
+  for(var j=0;j<DEFAULT_WELL_PROGRAMS.length;j++)defIds[DEFAULT_WELL_PROGRAMS[j].id]=DEFAULT_WELL_PROGRAMS[j];
+  var changed=false;
+  for(var i=0;i<wp.length;i++){
+    if(defIds[wp[i].id]){wp[i]=JSON.parse(JSON.stringify(defIds[wp[i].id]));changed=true;delete defIds[wp[i].id];}
+  }
+  /* Add any new defaults not yet present */
+  for(var k in defIds){wp.push(JSON.parse(JSON.stringify(defIds[k])));changed=true;}
+  if(changed)saveWellPrograms(wp);
+}
+function getWellHistory(){try{return JSON.parse(store.get('pt4_wellhist')||'[]');}catch(e){return[];}}
+function saveWellHistory(e){var h=getWellHistory();h.unshift(e);if(h.length>200)h.length=200;store.set('pt4_wellhist',JSON.stringify(h));}
+initWellPrograms();
+
+function goWellPrep(progId){
+  var progs=getWellPrograms()||[];var prog=null;
+  for(var i=0;i<progs.length;i++){if(progs[i].id===progId){prog=progs[i];break;}}
+  if(!prog)return;
+  WE.prog=prog;view='wellprep';render();
+}
+function startWellFromPrep(){
+  if(!WE.prog)return;
+  startWell(WE.prog.id);
+}
+
+function startWell(progId){
+  initAudio();requestWakeLock();
+  var progs=getWellPrograms()||[];var prog=null;
+  for(var i=0;i<progs.length;i++){if(progs[i].id===progId){prog=progs[i];break;}}
+  if(!prog||!prog.phases||!prog.phases.length)return;
+  WE={phase:'active',prog:prog,phases:prog.phases,phaseIdx:0,timeLeft:prog.phases[0].dur,round:1,totalRounds:prog.rounds||1,startTime:Date.now(),pauseTotal:0,pausedAt:0,announcing:true};
+  view='wellactive';clearAllTimers();render();
+  var p0=prog.phases[0];
+  softChime();
+  setTimeout(function(){
+    announceCalm(wellPhaseText(p0),function(){
+      if(WE.phase!=='active')return;
+      softBowl();WE.announcing=false;
+      timer=setInterval(wellTick,1000);render();
+    });
+  },500);
+}
+
+function wellPhaseText(ph){
+  if(ph.type==='inhale')return T().wellInhale;
+  if(ph.type==='exhale')return T().wellExhale;
+  if(ph.type==='hold')return T().wellHold;
+  if(ph.type==='work')return T().wellWork;
+  if(ph.type==='break')return T().wellBreak+'. '+T().wellRelax;
+  if(ph.instruction)return ph.name+'. '+ph.instruction;
+  return ph.name;
+}
+
+function wellTick(){
+  if(WE.phase!=='active'||WE.announcing)return;
+  WE.timeLeft--;
+  var ph=WE.phases[WE.phaseIdx];
+  /* Soft countdown for last 3 seconds - only if no breathRate active */
+  if(WE.timeLeft<=3&&WE.timeLeft>0&&!ph.breathRate)softTone(400+WE.timeLeft*50,150);
+  if(WE.timeLeft<=0){
+    try{speechSynthesis.cancel();}catch(e){}
+    WE.phaseIdx++;
+    if(WE.phaseIdx>=WE.phases.length){
+      WE.round++;
+      if(WE.round>WE.totalRounds){finishWell();return;}
+      WE.phaseIdx=0;
+    }
+    var np=WE.phases[WE.phaseIdx];
+    WE.timeLeft=np.dur;
+    /* Pause timer, announce, then resume */
+    WE.announcing=true;clearAllTimers();
+    var text=wellPhaseText(np);
+    announceCalm(text,function(){
+      if(WE.phase!=='active')return;
+      /* Play start tone */
+      if(np.type==='inhale')softTone(528,400);
+      else if(np.type==='exhale')softTone(396,400);
+      else if(np.type==='hold')softTone(440,250);
+      else softBowl();
+      WE.announcing=false;
+      timer=setInterval(wellTick,1000);
+      render();
+    });
+    render();return;
+  }
+  /* Guided rapid breathing: alternate inhale/exhale */
+  if(ph.breathRate&&ph.breathRate>0&&WE.timeLeft>4){
+    var elInPhase=ph.dur-WE.timeLeft;
+    var half=Math.floor(ph.breathRate/2);
+    var posInCycle=elInPhase%ph.breathRate;
+    if(posInCycle===0){softTone(528,200);calmQueue(T().wellInhale);}
+    else if(posInCycle===half){softTone(396,200);calmQueue(T().wellExhale);}
+  }
+  /* Mid-phase reminders for long phases */
+  if(ph.dur>60&&WE.timeLeft===Math.floor(ph.dur/2)&&ph.type==='work'){calmQueue(T().wellFocus+'. '+Math.floor(WE.timeLeft/60)+' '+T().runMin);}
+  if(ph.dur>60&&WE.timeLeft===60&&(ph.type==='work'||ph.type==='exercise')){calmQueue(T().runOneMinLeft);}
+  render();updateLockInfo();
+}
+
+function finishWell(){
+  clearAllTimers();WE.phase='finished';releaseWakeLock();
+  try{speechSynthesis.cancel();}catch(e){}
+  softChime();calmAfter(T().wellSessionDone,600);
+  saveWellHistory({date:new Date().toISOString(),progName:WE.prog.name,dur:Date.now()-WE.startTime-WE.pauseTotal});
+  render();
+}
+function pauseWell(){if(WE.phase!=='active')return;WE.phase='paused';WE.announcing=false;WE.pausedAt=Date.now();clearAllTimers();try{speechSynthesis.cancel();}catch(e){}calm(T().pause);render();}
+function resumeWell(){if(WE.phase!=='paused')return;WE.pauseTotal+=(Date.now()-WE.pausedAt);WE.phase='active';WE.announcing=false;clearAllTimers();timer=setInterval(wellTick,1000);softBowl();render();}
+function stopWell(){clearAllTimers();WE.phase='idle';try{speechSynthesis.cancel();}catch(e){}releaseWakeLock();}
+
+
+function goHome(){view='home';stopWorkout();stopRun();stopWell();if(gpsCheckId)try{navigator.geolocation.clearWatch(gpsCheckId);}catch(e){}gpsCheckId=null;render();}
 function goEdit(prog){editProg=prog?JSON.parse(JSON.stringify(prog)):{id:uid(),name:'Uusi ohjelma',workSec:45,restSec:10,exercises:[]};libSearch='';libCat='';view='edit';render();}
 function goLib(){view='lib';libSearch='';libCat='';editLibCat=-1;editLibEx=-1;staging=null;render();}
 function goLibAt(pos){insertAt=pos;goLib();}
@@ -718,10 +995,20 @@ function startWorkout(progId){
   view='workout';bark(T().start);clearAllTimers();timer=setInterval(tick,1000);render();lockScreen();}
 
 function tick(){
+  if(W.announcing)return;
   W.timeLeft=W.timeLeft-1;var ex=W.exercises[W.exIdx];var exSec=(ex.sec&&ex.sec>0)?ex.sec:W.workSec;
-  if(W.mode==='countdown'){if(W.timeLeft<=0){W.mode='work';if(ex.modeType==='reps'){clearAllTimers();speakExercise(ex,0);longBeep();}else{W.timeLeft=exSec;speakExercise(ex,exSec);longBeep();}}else if(W.timeLeft<=3)shortBeep();}
+  if(W.mode==='countdown'){if(W.timeLeft<=0){W.mode='work';
+    if(ex.modeType==='reps'){clearAllTimers();W.announcing=true;
+      announceBark(ex.name+'! '+(ex.weight?ex.weight+' '+T().kg+'! ':'')+(ex.reps||10)+' '+T().reps+'! '+T().doIt,function(){W.announcing=false;longBeep();render();});
+    }else{W.timeLeft=exSec;W.announcing=true;clearAllTimers();
+      announceBark(ex.name+'! '+(ex.weight?ex.weight+' '+T().kg+'! ':'')+exSec+' '+T().sec+'! '+rndMotivate(),function(){W.announcing=false;longBeep();timer=setInterval(tick,1000);render();});
+    }}else if(W.timeLeft<=3)shortBeep();}
   else if(W.mode==='work'){if(W.timeLeft<=0){advanceExercise();}else if(W.timeLeft<=5){shortBeep();bark(T().cd[W.timeLeft]||'');}else if(W.timeLeft===Math.floor(exSec/2)&&exSec>15){bark(rndMotivate());}}
-  else if(W.mode==='rest'){if(W.timeLeft<=0){W.exIdx++;ex=W.exercises[W.exIdx];exSec=(ex.sec&&ex.sec>0)?ex.sec:W.workSec;W.mode='work';if(ex.modeType==='reps'){clearAllTimers();speakExercise(ex,0);longBeep();}else{W.timeLeft=exSec;longBeep();speakExercise(ex,exSec);}}else if(W.timeLeft<=3)shortBeep();}
+  else if(W.mode==='rest'){if(W.timeLeft<=0){W.exIdx++;ex=W.exercises[W.exIdx];exSec=(ex.sec&&ex.sec>0)?ex.sec:W.workSec;W.mode='work';
+    if(ex.modeType==='reps'){clearAllTimers();longBeep();bark(T().doIt);render();return;}
+    else{W.timeLeft=exSec;W.announcing=true;clearAllTimers();longBeep();
+      setTimeout(function(){bark(T().doIt);setTimeout(function(){W.announcing=false;timer=setInterval(tick,1000);render();},600);},200);render();return;}
+    }else if(W.timeLeft<=3)shortBeep();}
   render();updateLockInfo();}
 
 function advanceExercise(){
@@ -730,7 +1017,12 @@ function advanceExercise(){
   if(W.exIdx>=W.exercises.length-1){finishWorkout();return;}
   W.mode='rest';W.timeLeft=W.restSec;longBeep();
   if(!timer)timer=setInterval(tick,1000);
-  var next=W.exercises[W.exIdx+1];var msg=rndFrom(T().rest)+' '+T().next+' '+next.name+'!';if(next.weight)msg+=' '+next.weight+' '+T().kg+'!';bark(msg);render();}
+  var next=W.exercises[W.exIdx+1];
+  var msg=rndFrom(T().rest)+' '+T().next+' '+next.name+'.';
+  if(next.weight)msg+=' '+next.weight+' '+T().kg+'.';
+  if(next.modeType==='reps')msg+=' '+(next.reps||10)+' '+T().reps+'.';
+  else{var ns=(next.sec&&next.sec>0)?next.sec:W.workSec;msg+=' '+ns+' '+T().sec+'.';}
+  bark(msg);render();}
 
 function completeReps(){if(W.mode!=='work'||W.exercises[W.exIdx].modeType!=='reps')return;advanceExercise();}
 
@@ -767,7 +1059,7 @@ document.addEventListener('click',function(e){
   else if(a==='pause')pauseWorkout();else if(a==='resume')resumeWorkout();
   else if(a==='lock')lockScreen();else if(a==='reset')goHome();
   else if(a==='done')completeReps();
-  else if(a==='setmode_main'){mainMode=v;store.set('pt4_mode',v);view=v==='gym'?'home':v==='run'?'runhome':'choose';render();}
+  else if(a==='setmode_main'){mainMode=v;store.set('pt4_mode',v);view=v==='gym'?'home':v==='run'?'runhome':v==='well'?'wellhome':'choose';render();}
   else if(a==='backtochoose'){view='choose';render();}
   else if(a==='runstart')goRunPrep(v);
   else if(a==='rungo')startRunFromPrep();
@@ -783,6 +1075,15 @@ document.addEventListener('click',function(e){
   else if(a==='runcancel'){if(gpsCheckId)try{navigator.geolocation.clearWatch(gpsCheckId);}catch(e){}gpsCheckId=null;editRunProg=null;view='runhome';render();}
   else if(a==='rundel'){var rps3=(getRunPrograms()||[]).filter(function(rp){return rp.id!==v;});saveRunPrograms(rps3);render();}
   else if(a==='clearrunhist'){store.del('pt4_runhist');render();}
+  else if(a==='wellcat'){wellCat=v;render();}
+  else if(a==='wellstart'){goWellPrep(v);}
+  else if(a==='wellgo'){startWellFromPrep();lockScreen();}
+  else if(a==='wellstop'){stopWell();wellCat='';view='wellhome';render();}
+  else if(a==='wellpause')pauseWell();
+  else if(a==='wellresume')resumeWell();
+  else if(a==='welllock')lockScreen();
+  else if(a==='wellreset'){WE.phase='idle';wellCat='';view='wellhome';render();}
+  else if(a==='wellcancel'){view='wellhome';render();}
   else if(a==='addph'){if(editRunProg){editRunProg.phases.push({name:'',dur:60,pace:0,type:'jog'});if(editRunProg.repeatTo<editRunProg.phases.length-1)editRunProg.repeatTo=editRunProg.phases.length-1;render();}}
   else if(a==='remph'){if(editRunProg){editRunProg.phases.splice(+v,1);if(editRunProg.repeatTo>=editRunProg.phases.length)editRunProg.repeatTo=Math.max(0,editRunProg.phases.length-1);if(editRunProg.repeatFrom>editRunProg.repeatTo)editRunProg.repeatFrom=editRunProg.repeatTo;render();}}
   else if(a==='moveph'){if(editRunProg){var pi2=+v,dir2=+v2,phs=editRunProg.phases;var tmp2=phs[pi2];phs[pi2]=phs[pi2+dir2];phs[pi2+dir2]=tmp2;render();}}
@@ -819,7 +1120,7 @@ document.addEventListener('change',function(e){var t=e.target,b=t.getAttribute('
 document.addEventListener('input',function(e){if(e.target.getAttribute('data-bind')==='libsearch'){libSearch=e.target.value.toLowerCase();render();}});
 
 /* RENDER */
-function render(){var app=document.getElementById('app'),btm=document.getElementById('btm');btm.style.display='none';try{if(view==='choose')renderChoose(app);else if(view==='home')renderHome(app);else if(view==='edit')renderEdit(app);else if(view==='lib')renderLib(app);else if(view==='prep')renderPrep(app,btm);else if(view==='workout')renderWorkout(app,btm);else if(view==='runhome')renderRunHome(app);else if(view==='runedit')renderRunEdit(app);else if(view==='runprep')renderRunPrep(app,btm);else if(view==='runactive')renderRunActive(app,btm);}catch(err){app.innerHTML='<div style="padding:20px;color:#f88">'+esc(err.message)+'</div>';}}
+function render(){var app=document.getElementById('app'),btm=document.getElementById('btm');btm.style.display='none';try{if(view==='choose')renderChoose(app);else if(view==='home')renderHome(app);else if(view==='edit')renderEdit(app);else if(view==='lib')renderLib(app);else if(view==='prep')renderPrep(app,btm);else if(view==='workout')renderWorkout(app,btm);else if(view==='runhome')renderRunHome(app);else if(view==='runedit')renderRunEdit(app);else if(view==='runprep')renderRunPrep(app,btm);else if(view==='runactive')renderRunActive(app,btm);else if(view==='wellhome')renderWellHome(app);else if(view==='wellprep')renderWellPrep(app,btm);else if(view==='wellactive')renderWellActive(app,btm);}catch(err){app.innerHTML='<div style="padding:20px;color:#f88">'+esc(err.message)+'</div>';}}
 
 function renderHome(app){
   var progs=getPrograms()||[],hist=getHistory();
@@ -830,11 +1131,8 @@ function renderHome(app){
       h+='<div class="prog-card" data-action="start" data-val="'+esc(p.id)+'"><div class="prog-card-actions"><button class="abtn" data-action="edit" data-val="'+esc(p.id)+'">\u270F\uFE0F</button><button class="abtn" data-action="dup" data-val="'+esc(p.id)+'">\u{1F4CB}</button>';if(progs.length>1)h+='<button class="abtn del" data-action="del" data-val="'+esc(p.id)+'">\u{1F5D1}</button>';h+='</div><div class="prog-card-name">'+esc(p.name)+'</div><div class="prog-card-info">'+p.exercises.length+' liikett\u00e4 \u00b7 ~'+Math.ceil(tt/60)+' min</div>';if(p.tag)h+='<div class="prog-card-tag">'+esc(p.tag)+'</div>';h+='</div>';}
     h+='<button class="btn full" style="margin-top:8px" data-action="newedit">+ Uusi ohjelma</button>';
   }else{if(hist.length>0){for(var k=0;k<hist.length;k++){var hi=hist[k],d=new Date(hi.date);h+='<div class="hist-item"><span>'+fDF(d)+' '+fT(d)+'<br><span style="color:var(--muted);font-size:10px">'+esc(hi.progName)+'</span></span><span style="color:var(--muted)">'+fD(hi.dur)+'</span></div>';}h+='<div style="text-align:center;padding:10px"><button class="btn sm danger" data-action="clearhist">Tyhjenn\u00e4</button></div>';}else h+='<div style="text-align:center;color:var(--muted);padding:40px;font-size:12px">Ei treenej\u00e4 viel\u00e4</div>';}
-  h+='<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:center"><button class="btn sm" data-action="backup" style="flex:1">\u{1F4BE} '+(lang==='fi'?'Varmuuskopio':'Backup')+'</button><button class="btn sm" data-action="restore" style="flex:1">\u{1F4C2} '+(lang==='fi'?'Palauta':'Restore')+'</button></div>';
-  h+='<input type="file" id="restore_file" accept=".json" style="display:none">';
   h+='<div style="height:30px"></div>';
-  app.innerHTML=h;
-  var rf=document.getElementById('restore_file');if(rf)rf.addEventListener('change',function(ev){if(ev.target.files&&ev.target.files[0])importBackup(ev.target.files[0]);ev.target.value='';});}
+  app.innerHTML=h;}
 
 function renderPrep(app,btm){
   var p=prepProg;if(!p){goHome();return;}var equip=getEquipmentList(p.exercises);
@@ -936,8 +1234,18 @@ function renderChoose(app){
   h+='<div class="mode-card" data-action="setmode_main" data-val="gym"><div class="mode-card-icon">\u{1F3CB}</div><div class="mode-card-title">'+(lang==='fi'?'Kuntosali':'Gym')+'</div></div>';
   h+='<div class="mode-card" data-action="setmode_main" data-val="run"><div class="mode-card-icon">\u{1F3C3}</div><div class="mode-card-title">'+(lang==='fi'?'Juoksu':'Running')+'</div></div>';
   h+='</div>';
+  h+='<div style="display:flex;gap:12px;padding:0 10px;margin-top:12px">';
+  h+='<div class="mode-card" data-action="setmode_main" data-val="well"><div class="mode-card-icon">\u2728</div><div class="mode-card-title">'+T().wellTitle+'</div></div>';
+  h+='</div>';
   h+='<div style="display:flex;justify-content:center;gap:6px;margin-top:24px"><button class="side-btn'+(lang==='fi'?' active':'')+'" data-action="setlang" data-val="fi" style="min-width:60px">\u{1F1EB}\u{1F1EE} Suomi</button><button class="side-btn'+(lang==='en'?' active':'')+'" data-action="setlang" data-val="en" style="min-width:60px">\u{1F1EC}\u{1F1E7} English</button></div>';
-  app.innerHTML=h;}
+  /* Backup & Restore */
+  h+='<div style="margin-top:28px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:center;padding:16px 10px 0"><button class="btn sm" data-action="backup" style="flex:1">\u{1F4BE} '+(lang==='fi'?'Varmuuskopio':'Backup')+'</button><button class="btn sm" data-action="restore" style="flex:1">\u{1F4C2} '+(lang==='fi'?'Palauta':'Restore')+'</button></div>';
+  h+='<input type="file" id="restore_file" accept=".json" style="display:none">';
+  /* Version */
+  h+='<div style="text-align:center;margin-top:16px;font-size:10px;color:var(--muted)">v'+APP_VERSION+'</div>';
+  app.innerHTML=h;
+  var rf=document.getElementById('restore_file');if(rf)rf.addEventListener('change',function(ev){if(ev.target.files&&ev.target.files[0])importBackup(ev.target.files[0]);ev.target.value='';});
+}
 
 function renderRunHome(app){
   var progs=getRunPrograms()||[],hist=getRunHistory();
@@ -1169,7 +1477,113 @@ function renderRunActive(app,btm){
   btm.innerHTML='<button class="btn danger" data-action="runstop">'+T().uiStop+'</button><button class="btn sm" data-action="runpause">'+T().uiPause+'</button><button class="btn sm" data-action="runlock" style="background:#222;border-color:#444;color:#888">\u{1F512}</button>';
 }
 
-view=mainMode==='gym'?'home':mainMode==='run'?'runhome':'choose';render();
+
+/* ========== WELLBEING UI ========== */
+function renderWellHome(app){
+  var h='<div class="hdr"><button class="hdr-back" data-action="backtochoose">\u2190</button><div style="flex:1"><div class="hdr-title">\u{2728} '+T().wellTitle+'</div></div></div>';
+  if(!wellCat){
+    /* Show categories */
+    for(var ci=0;ci<WELL_CATEGORIES.length;ci++){var c=WELL_CATEGORIES[ci];
+      var progs=(getWellPrograms()||[]).filter(function(p){return p.cat===c.id;});
+      h+='<div class="well-cat" data-action="wellcat" data-val="'+c.id+'"><div style="display:flex;align-items:center;gap:12px"><div class="well-cat-icon">'+c.icon+'</div><div><div class="well-cat-name">'+T()[c.nameKey]+'</div><div class="well-cat-desc">'+T()[c.descKey]+' ('+progs.length+')</div></div></div></div>';
+    }
+    /* History */
+    var hist=getWellHistory();
+    if(hist.length>0){
+      h+='<div class="label" style="margin-top:16px">'+(lang==='fi'?'Viimeisimm\u00e4t':'Recent')+'</div>';
+      for(var k=0;k<Math.min(hist.length,5);k++){var hi=hist[k],d=new Date(hi.date);
+        h+='<div class="hist-item"><span>'+fDF(d)+' '+fT(d)+'</span><span style="color:var(--muted);font-size:10px">'+esc(hi.progName)+'</span><span style="color:var(--muted)">'+fD(hi.dur)+'</span></div>';}
+    }
+  }else{
+    /* Show programs in category */
+    var cat=null;for(var ci2=0;ci2<WELL_CATEGORIES.length;ci2++){if(WELL_CATEGORIES[ci2].id===wellCat)cat=WELL_CATEGORIES[ci2];}
+    h+='<div style="cursor:pointer;font-size:12px;color:var(--muted);margin-bottom:12px" data-action="wellcat" data-val="">\u2190 '+(lang==='fi'?'Takaisin':'Back')+'</div>';
+    if(cat)h+='<div style="text-align:center;font-size:32px;margin:8px 0">'+cat.icon+'</div>';
+    var progs2=(getWellPrograms()||[]).filter(function(p){return p.cat===wellCat;});
+    for(var pi=0;pi<progs2.length;pi++){var wp=progs2[pi];
+      var totalSec=0;for(var ph=0;ph<wp.phases.length;ph++)totalSec+=wp.phases[ph].dur;totalSec*=(wp.rounds||1);
+      h+='<div class="well-prog" data-action="wellstart" data-val="'+esc(wp.id)+'"><div class="well-prog-name">'+esc(wp.name)+'</div><div class="well-prog-desc">'+esc(wp.desc)+' \u00b7 ~'+fD(totalSec*1000)+'</div></div>';}
+  }
+  app.innerHTML=h;
+}
+
+function renderWellPrep(app,btm){
+  var prog=WE.prog;if(!prog){view='wellhome';render();return;}
+  var cat=null;for(var ci=0;ci<WELL_CATEGORIES.length;ci++){if(WELL_CATEGORIES[ci].id===prog.cat)cat=WELL_CATEGORIES[ci];}
+  var totalSec=0;for(var pi=0;pi<prog.phases.length;pi++)totalSec+=prog.phases[pi].dur;totalSec*=(prog.rounds||1);
+  var h='<div class="hdr"><button class="hdr-back" data-action="wellcancel">\u2190</button><div style="flex:1"><div class="hdr-title">'+T().runPrepTitle+'</div></div></div>';
+  h+='<div style="text-align:center;margin:16px 0"><div style="font-size:40px">'+(cat?cat.icon:'\u2728')+'</div><div style="font-family:Oswald,sans-serif;font-size:22px;font-weight:700;color:var(--text);margin-top:8px">'+esc(prog.name)+'</div>';
+  if(prog.desc)h+='<div style="font-size:12px;color:var(--muted);margin-top:4px">'+esc(prog.desc)+'</div>';
+  h+='</div>';
+  /* Summary stats */
+  h+='<div class="stat-row"><div class="stat-card"><div class="stat-val" style="font-size:20px">'+prog.phases.length+'</div><div class="stat-label">'+(lang==='fi'?'Vaihetta':'Phases')+'</div></div>';
+  if((prog.rounds||1)>1)h+='<div class="stat-card"><div class="stat-val" style="font-size:20px">'+(prog.rounds||1)+'</div><div class="stat-label">'+(lang==='fi'?'Kierrosta':'Rounds')+'</div></div>';
+  h+='<div class="stat-card"><div class="stat-val" style="font-size:20px">~'+fD(totalSec*1000)+'</div><div class="stat-label">'+(lang==='fi'?'Kesto':'Duration')+'</div></div></div>';
+  /* Phase list */
+  h+='<div class="label">'+(lang==='fi'?'Vaiheet':'Phases')+'</div>';
+  for(var i=0;i<prog.phases.length;i++){
+    var ph=prog.phases[i];
+    var phIcon=ph.type==='inhale'?'\u{1F4A8}':ph.type==='exhale'?'\u{1F32C}':ph.type==='hold'?'\u23F8':ph.type==='exercise'?'\u26A1':ph.type==='pose'?'\u{1F9D8}':ph.type==='work'?'\u{1F525}':ph.type==='break'?'\u2615':'\u23F3';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:4px"><div style="display:flex;align-items:center;gap:8px"><span>'+phIcon+'</span><div><div style="font-size:13px;color:var(--text)">'+esc(ph.name)+'</div>';
+    if(ph.instruction)h+='<div style="font-size:9px;color:var(--muted)">'+esc(ph.instruction)+'</div>';
+    h+='</div></div><span style="font-size:12px;color:var(--muted)">'+ph.dur+'s</span></div>';
+  }
+  if((prog.rounds||1)>1)h+='<div style="text-align:center;font-size:11px;color:var(--blue);margin:8px 0">\u{1F501} '+(lang==='fi'?'Toistetaan':'Repeats')+' '+(prog.rounds||1)+' '+(lang==='fi'?'kertaa':'times')+'</div>';
+  h+='<div style="height:120px"></div>';
+  btm.style.display='flex';
+  btm.innerHTML='<button class="btn danger" data-action="wellcancel">'+(lang==='fi'?'Takaisin':'Back')+'</button><button class="btn primary" data-action="wellgo">'+(lang==='fi'?'Aloita':'Start')+' \u2728</button>';
+  app.innerHTML=h;
+}
+
+function renderWellActive(app,btm){
+  btm.style.display='flex';
+  if(WE.phase==='finished'){
+    btm.style.display='none';
+    var dur=Date.now()-WE.startTime-WE.pauseTotal;
+    app.innerHTML='<div class="center"><div style="font-size:56px">\u2728</div><div class="title">'+T().wellComplete+'</div><div class="stat-row"><div class="stat-card"><div class="stat-val">'+fD(dur)+'</div><div class="stat-label">'+T().uiTime+'</div></div></div><button class="btn primary" data-action="wellreset">'+T().uiBack+'</button></div>';return;
+  }
+  if(WE.phase==='paused'){
+    var ph2=WE.phases[WE.phaseIdx];
+    app.innerHTML='<div style="text-align:center;margin-top:40px"><div style="font-size:48px">\u23F8</div><div style="font-family:Oswald,sans-serif;font-size:36px;font-weight:700;color:var(--yellow);margin:16px 0">'+T().uiPaused+'</div><div style="font-size:13px;color:var(--muted)">'+esc(ph2.name)+'</div></div>';
+    btm.innerHTML='<button class="btn danger" data-action="wellstop">'+T().uiStop+'</button><button class="btn primary" data-action="wellresume">'+T().uiResume+'</button>';return;
+  }
+  /* Active */
+  var ph=WE.phases[WE.phaseIdx];
+  var phColor=ph.type==='inhale'?'var(--blue)':ph.type==='hold'?'var(--yellow)':ph.type==='exhale'?'var(--green)':ph.type==='work'?'var(--accent)':ph.type==='pose'?'var(--blue)':'var(--muted)';
+  var h2='';
+  h2+='<div style="text-align:center;font-size:11px;color:var(--muted);margin:8px 0">'+esc(WE.prog.name);
+  if(WE.totalRounds>1)h2+=' \u00b7 '+T().wellRound+' '+WE.round+'/'+WE.totalRounds;
+  h2+='</div>';
+  /* Phase dots */
+  h2+='<div style="display:flex;gap:3px;justify-content:center;margin:8px 0;flex-wrap:wrap">';
+  for(var di=0;di<WE.phases.length;di++){var dotC=di<WE.phaseIdx?'var(--green)':di===WE.phaseIdx?phColor:'var(--card2)';h2+='<div style="width:8px;height:8px;border-radius:4px;background:'+dotC+'"></div>';}
+  h2+='</div>';
+  /* Phase name */
+  h2+='<div class="well-instruction" style="color:'+phColor+'">'+esc(ph.name)+'</div>';
+  /* Breath counter for rapid breathing */
+  if(ph.breathRate&&ph.breathRate>0){
+    var elInPh=ph.dur-WE.timeLeft;
+    var breathNum=Math.floor(elInPh/ph.breathRate)+1;
+    var totalBreaths=Math.floor(ph.dur/ph.breathRate);
+    var posInCy=elInPh%ph.breathRate;
+    var isInhale=posInCy<Math.floor(ph.breathRate/2);
+    h2+='<div style="text-align:center;margin:4px 0"><span style="font-family:Oswald,sans-serif;font-size:20px;color:'+(isInhale?'var(--blue)':'var(--green)')+'">'+( isInhale?T().wellInhale:T().wellExhale)+'</span><span style="font-size:13px;color:var(--muted);margin-left:8px">'+breathNum+'/'+totalBreaths+'</span></div>';
+  }
+  /* Instruction */
+  if(ph.instruction)h2+='<div style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:12px">'+esc(ph.instruction)+'</div>';
+  /* Timer ring */
+  var pct=WE.timeLeft/ph.dur,r=80,cx=90,cy=90,circ=2*Math.PI*r;
+  h2+='<div class="well-ring" style="width:180px;height:180px"><svg width="180" height="180"><circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="var(--card2)" stroke-width="6"/><circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+phColor+'" stroke-width="6" stroke-dasharray="'+circ+'" stroke-dashoffset="'+(circ*(1-pct))+'" stroke-linecap="round"/></svg><div class="well-ring-text"><div style="font-family:Oswald,sans-serif;font-size:52px;font-weight:700;color:var(--text)">'+WE.timeLeft+'</div></div></div>';
+  /* Next phase preview */
+  var nextIdx=WE.phaseIdx+1;
+  if(nextIdx<WE.phases.length){h2+='<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px">'+T().wellNextPhase+' '+esc(WE.phases[nextIdx].name)+'</div>';}
+  else if(WE.round<WE.totalRounds){h2+='<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px">'+T().wellRound+' '+(WE.round+1)+' \u2192</div>';}
+  app.innerHTML=h2;
+  btm.innerHTML='<button class="btn danger" data-action="wellstop">'+T().uiStop+'</button><button class="btn sm" data-action="wellpause">'+T().uiPause+'</button><button class="btn sm" data-action="welllock" style="background:#222;border-color:#444;color:#888">\u{1F512}</button>';
+}
+
+
+view=mainMode==='gym'?'home':mainMode==='run'?'runhome':mainMode==='well'?'wellhome':'choose';render();
 })();
 </script>
 </body>
