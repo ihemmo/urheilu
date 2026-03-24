@@ -915,14 +915,11 @@ function startWell(progId){
   WE={phase:'active',prog:prog,phases:prog.phases,phaseIdx:0,timeLeft:prog.phases[0].dur,round:1,totalRounds:prog.rounds||1,startTime:Date.now(),pauseTotal:0,pausedAt:0,announcing:true};
   view='wellactive';clearAllTimers();render();
   var p0=prog.phases[0];
-  softChime();
-  setTimeout(function(){
-    announceCalm(wellPhaseText(p0),function(){
-      if(WE.phase!=='active')return;
-      softStart();WE.announcing=false;
-      timer=setInterval(wellTick,1000);render();
-    });
-  },500);
+  announceCalm(wellPhaseText(p0),function(){
+    if(WE.phase!=='active')return;
+    calm(T().wellGo);
+    setTimeout(function(){WE.announcing=false;timer=setInterval(wellTick,1000);render();},800);
+  });
 }
 
 function wellPhaseText(ph){
@@ -939,8 +936,6 @@ function wellTick(){
   if(WE.phase!=='active'||WE.announcing)return;
   WE.timeLeft--;
   var ph=WE.phases[WE.phaseIdx];
-  /* Soft countdown for last 3 seconds - only if no breathRate active */
-  if(WE.timeLeft<=3&&WE.timeLeft>0&&!ph.breathRate)softTone(400+WE.timeLeft*50,150);
   if(WE.timeLeft<=0){
     try{speechSynthesis.cancel();}catch(e){}
     WE.phaseIdx++;
@@ -951,25 +946,25 @@ function wellTick(){
     }
     var np=WE.phases[WE.phaseIdx];
     WE.timeLeft=np.dur;
-    /* Pause timer, announce, then resume */
+    /* Pause timer, announce phase, say "Aloita/Go", then start timer */
     WE.announcing=true;clearAllTimers();
     var text=wellPhaseText(np);
+    if(WE.round>1&&WE.phaseIdx===0)text=T().wellRound+' '+WE.round+'. '+text;
     announceCalm(text,function(){
       if(WE.phase!=='active')return;
-      softStart();
       WE.announcing=false;
       timer=setInterval(wellTick,1000);
       render();
     });
     render();return;
   }
-  /* Guided rapid breathing: alternate inhale/exhale */
+  /* Guided rapid breathing: alternate inhale/exhale - speech only */
   if(ph.breathRate&&ph.breathRate>0&&WE.timeLeft>4){
     var elInPhase=ph.dur-WE.timeLeft;
     var half=Math.floor(ph.breathRate/2);
     var posInCycle=elInPhase%ph.breathRate;
-    if(posInCycle===0){softTone(528,200);calmQueue(T().wellInhale);}
-    else if(posInCycle===half){softTone(396,200);calmQueue(T().wellExhale);}
+    if(posInCycle===0)calmQueue(T().wellInhale);
+    else if(posInCycle===half)calmQueue(T().wellExhale);
   }
   /* Mid-phase reminders for long phases */
   if(ph.dur>60&&WE.timeLeft===Math.floor(ph.dur/2)&&ph.type==='work'){calmQueue(T().wellFocus+'. '+Math.floor(WE.timeLeft/60)+' '+T().runMin);}
@@ -980,12 +975,12 @@ function wellTick(){
 function finishWell(){
   clearAllTimers();WE.phase='finished';stopAudioKeepAlive();releaseWakeLock();
   try{speechSynthesis.cancel();}catch(e){}
-  softChime();calmAfter(T().wellSessionDone,600);
+  calm(T().wellSessionDone);
   saveWellHistory({date:new Date().toISOString(),progName:WE.prog.name,dur:Date.now()-WE.startTime-WE.pauseTotal});
   render();
 }
 function pauseWell(){if(WE.phase!=='active')return;WE.phase='paused';WE.announcing=false;WE.pausedAt=Date.now();clearAllTimers();try{speechSynthesis.cancel();}catch(e){}calm(T().pause);render();}
-function resumeWell(){if(WE.phase!=='paused')return;WE.pauseTotal+=(Date.now()-WE.pausedAt);WE.phase='active';WE.announcing=false;clearAllTimers();timer=setInterval(wellTick,1000);softStart();render();}
+function resumeWell(){if(WE.phase!=='paused')return;WE.pauseTotal+=(Date.now()-WE.pausedAt);WE.phase='active';WE.announcing=false;clearAllTimers();timer=setInterval(wellTick,1000);calm(T().wellGo);render();}
 function stopWell(){clearAllTimers();WE.phase='idle';try{speechSynthesis.cancel();}catch(e){}stopAudioKeepAlive();releaseWakeLock();}
 
 
