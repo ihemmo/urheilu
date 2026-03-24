@@ -117,7 +117,7 @@ var store={get:function(k){try{var v=localStorage.getItem(k);if(v!==null)return 
 
 var audioCtx=null;
 function initAudio(){if(audioCtx)return;try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();var b=audioCtx.createBuffer(1,1,22050);var s=audioCtx.createBufferSource();s.buffer=b;s.connect(audioCtx.destination);s.start(0);}catch(e){}}
-function beep(f,d){if(!audioCtx)return;try{var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.value=f;g.gain.value=0.3;o.start();o.stop(audioCtx.currentTime+d/1000);}catch(e){}}
+function beep(f,d){if(!audioCtx)return;try{if(audioCtx.state==='suspended')audioCtx.resume();var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.value=f;g.gain.value=0.3;o.start();o.stop(audioCtx.currentTime+d/1000);}catch(e){}}
 function shortBeep(){beep(800,150);}function longBeep(){beep(1200,400);}
 function plingOk(){if(!audioCtx)return;try{var t=audioCtx.currentTime;var o1=audioCtx.createOscillator(),o2=audioCtx.createOscillator(),g=audioCtx.createGain();o1.connect(g);o2.connect(g);g.connect(audioCtx.destination);o1.frequency.value=880;o2.frequency.value=1320;g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.01,t+0.4);o1.start(t);o1.stop(t+0.2);o2.start(t+0.15);o2.stop(t+0.4);}catch(e){}}
 function beepSlow(){if(!audioCtx)return;try{var t=audioCtx.currentTime;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.setValueAtTime(600,t);o.frequency.linearRampToValueAtTime(400,t+0.25);g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.01,t+0.3);o.start(t);o.stop(t+0.3);}catch(e){}}
@@ -172,9 +172,10 @@ function announceBark(text,onDone){
     setTimeout(function(){if(!done){done=true;if(onDone)onDone();}},Math.max(2000,text.length*70+1500));
   }catch(e){if(onDone)onDone();}
 }
-function softTone(freq,dur){if(!audioCtx)return;try{var t=audioCtx.currentTime;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.connect(g);g.connect(audioCtx.destination);o.frequency.value=freq;g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.01,t+dur/1000);o.start(t);o.stop(t+dur/1000);}catch(e){}}
+function softTone(freq,dur){if(!audioCtx)return;try{if(audioCtx.state==='suspended')audioCtx.resume();var t=audioCtx.currentTime;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.connect(g);g.connect(audioCtx.destination);o.frequency.value=freq;g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.01,t+dur/1000);o.start(t);o.stop(t+dur/1000);}catch(e){}}
 function softBowl(){softTone(528,800);}
 function softChime(){softTone(396,500);setTimeout(function(){softTone(528,500);},300);}
+function softStart(){if(!audioCtx)return;try{if(audioCtx.state==='suspended')audioCtx.resume();var t=audioCtx.currentTime;var o1=audioCtx.createOscillator(),o2=audioCtx.createOscillator(),g=audioCtx.createGain();o1.connect(g);o2.connect(g);g.connect(audioCtx.destination);o1.frequency.value=440;o2.frequency.value=660;g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.01,t+0.5);o1.start(t);o1.stop(t+0.25);o2.start(t+0.2);o2.stop(t+0.5);}catch(e){}}
 var TX={fi:{
   motivate:['Ei t\u00e4m\u00e4 niin vaikeaa ole!','Koita nyt jaksaa!','Mummo tekisi t\u00e4m\u00e4n nopeammin!','Lis\u00e4\u00e4 tehoa!','T\u00e4m\u00e4k\u00f6 on kaikki?','Ei saa luovuttaa!','Paina kovempaa!','Kyll\u00e4 sin\u00e4 jaksat!','Heikompikin jaksaisi!','Mene! \u00c4l\u00e4 mieti!','Nyt ei valiteta!','Ei ole lupaa lopettaa!','Keskity! T\u00e4m\u00e4 ei ole lomareissu!','Tekosyyt ei auta!','Nyt ei saa pett\u00e4\u00e4!','Pieni kipu ei ket\u00e4\u00e4n tapa!'],
   cd:['Seis!','Yksi!','Kaksi!','Kolme!','Nelj\u00e4!','Viisi!'],
@@ -901,7 +902,7 @@ function startWell(progId){
   setTimeout(function(){
     announceCalm(wellPhaseText(p0),function(){
       if(WE.phase!=='active')return;
-      softBowl();WE.announcing=false;
+      softStart();WE.announcing=false;
       timer=setInterval(wellTick,1000);render();
     });
   },500);
@@ -938,11 +939,7 @@ function wellTick(){
     var text=wellPhaseText(np);
     announceCalm(text,function(){
       if(WE.phase!=='active')return;
-      /* Play start tone */
-      if(np.type==='inhale')softTone(528,400);
-      else if(np.type==='exhale')softTone(396,400);
-      else if(np.type==='hold')softTone(440,250);
-      else softBowl();
+      softStart();
       WE.announcing=false;
       timer=setInterval(wellTick,1000);
       render();
@@ -971,7 +968,7 @@ function finishWell(){
   render();
 }
 function pauseWell(){if(WE.phase!=='active')return;WE.phase='paused';WE.announcing=false;WE.pausedAt=Date.now();clearAllTimers();try{speechSynthesis.cancel();}catch(e){}calm(T().pause);render();}
-function resumeWell(){if(WE.phase!=='paused')return;WE.pauseTotal+=(Date.now()-WE.pausedAt);WE.phase='active';WE.announcing=false;clearAllTimers();timer=setInterval(wellTick,1000);softBowl();render();}
+function resumeWell(){if(WE.phase!=='paused')return;WE.pauseTotal+=(Date.now()-WE.pausedAt);WE.phase='active';WE.announcing=false;clearAllTimers();timer=setInterval(wellTick,1000);softStart();render();}
 function stopWell(){clearAllTimers();WE.phase='idle';try{speechSynthesis.cancel();}catch(e){}releaseWakeLock();}
 
 
