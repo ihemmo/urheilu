@@ -111,7 +111,7 @@ body{font-family:'IBM Plex Mono',monospace;background:var(--bg);color:var(--text
 <script>
 (function(){
 'use strict';
-var APP_VERSION='1.1.0';
+var APP_VERSION='1.2.0';
 var mem={};
 var store={get:function(k){try{var v=localStorage.getItem(k);if(v!==null)return v;}catch(e){}return mem[k]||null;},set:function(k,v){mem[k]=v;try{localStorage.setItem(k,v);}catch(e){}},del:function(k){delete mem[k];try{localStorage.removeItem(k);}catch(e){}}};
 
@@ -164,6 +164,7 @@ function setLang(l){lang=l;store.set('pt4_lang',l);render();}
 function speak(text){try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(text);u.lang=lang==='fi'?'fi-FI':'en-US';u.rate=1.0;u.pitch=0.7;u.volume=1.0;if(lang==='fi'&&fiVoice)u.voice=fiVoice;speechSynthesis.speak(u);}catch(e){}}
 function bark(text){try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(text);u.lang=lang==='fi'?'fi-FI':'en-US';u.rate=1.05;u.pitch=0.6;u.volume=1.0;if(lang==='fi'&&fiVoice)u.voice=fiVoice;speechSynthesis.speak(u);}catch(e){}}
 function calm(text){try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(text);u.lang=lang==='fi'?'fi-FI':'en-US';u.rate=0.85;u.pitch=1.0;u.volume=0.9;if(lang==='fi'&&fiVoice)u.voice=fiVoice;speechSynthesis.speak(u);}catch(e){}}
+function breathCue(text){try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(text);u.lang=lang==='fi'?'fi-FI':'en-US';u.rate=1.4;u.pitch=1.1;u.volume=0.8;if(lang==='fi'&&fiVoice)u.voice=fiVoice;speechSynthesis.speak(u);}catch(e){}}
 function calmQueue(text){try{var u=new SpeechSynthesisUtterance(text);u.lang=lang==='fi'?'fi-FI':'en-US';u.rate=0.85;u.pitch=1.0;u.volume=0.9;if(lang==='fi'&&fiVoice)u.voice=fiVoice;speechSynthesis.speak(u);}catch(e){}}
 function calmAfter(text,ms){setTimeout(function(){calmQueue(text);},ms);}
 function announceCalm(text,onDone){
@@ -228,7 +229,7 @@ var TX={fi:{
   wellRound:'Kierros',wellComplete:'Valmis!',wellStart:'Aloita',wellBreatheDesc:'Hengitysharjoitukset',
   wellMeditationDesc:'Ohjattu meditaatio',wellVagusDesc:'Vagushermon stimulaatio',wellPomodoroDesc:'Keskittymisjakso',wellYogaDesc:'Jooga-asanat',
   wellHum:'Hyrise',wellGargle:'Kurlaa',wellColdFace:'Kylm\u00e4 kasvoille',wellEyeMove:'Silm\u00e4liikkeet',wellSing:'Laula',wellEarMassage:'Korvan hieronta',
-  wellRelax:'Rentoudu',wellFocus:'Keskity',wellNextPhase:'Seuraava:',wellSessionDone:'Harjoitus valmis! Hyv\u00e4\u00e4 oloa!',wellGo:'Aloita!'
+  wellRelax:'Rentoudu',wellFocus:'Keskity',wellNextPhase:'Seuraava:',wellSessionDone:'Harjoitus valmis! Hyv\u00e4\u00e4 oloa!',wellGo:'Aloita!',wellStress:'Stressinhallinta',wellStressDesc:'Rentoutus ja rauhoittuminen'
 },en:{
   motivate:['Is that all you got?','My grandma lifts heavier!','Push harder! Now!','Come on! Dig deep!','No excuses!','Pain is temporary! Push!','Stop whining! Move!','You can do better than that!','I said move! Not crawl!','Focus! This is not a vacation!','Weak! Give me more!','Do not quit on me!','Faster! Stronger!','You call that effort?','Show me what you got!','Less thinking, more doing!'],
   cd:['Stop!','One!','Two!','Three!','Four!','Five!'],
@@ -264,7 +265,7 @@ var TX={fi:{
   wellRound:'Round',wellComplete:'Complete!',wellStart:'Start',wellBreatheDesc:'Breathing exercises',
   wellMeditationDesc:'Guided meditation',wellVagusDesc:'Vagus nerve stimulation',wellPomodoroDesc:'Focus timer',wellYogaDesc:'Yoga poses',
   wellHum:'Hum',wellGargle:'Gargle',wellColdFace:'Cold face',wellEyeMove:'Eye movement',wellSing:'Sing',wellEarMassage:'Ear massage',
-  wellRelax:'Relax',wellFocus:'Focus',wellNextPhase:'Next:',wellSessionDone:'Session complete! Feel good!',wellGo:'Go!'
+  wellRelax:'Relax',wellFocus:'Focus',wellNextPhase:'Next:',wellSessionDone:'Session complete! Feel good!',wellGo:'Go!',wellStress:'Stress relief',wellStressDesc:'Relaxation and calming'
 }};
 function T(){return TX[lang]||TX.fi;}
 function rndFrom(arr){return arr[Math.floor(Math.random()*arr.length)];}
@@ -798,7 +799,8 @@ var WELL_CATEGORIES=[
   {id:'vagus',icon:'\u26A1',nameKey:'wellVagus',descKey:'wellVagusDesc'},
   {id:'meditation',icon:'\u{1F9D8}',nameKey:'wellMeditation',descKey:'wellMeditationDesc'},
   {id:'pomodoro',icon:'\u{1F345}',nameKey:'wellPomodoro',descKey:'wellPomodoroDesc'},
-  {id:'yoga',icon:'\u{1F9D8}\u200D\u2642\uFE0F',nameKey:'wellYoga',descKey:'wellYogaDesc'}
+  {id:'yoga',icon:'\u{1F9D8}\u200D\u2642\uFE0F',nameKey:'wellYoga',descKey:'wellYogaDesc'},
+  {id:'stress',icon:'\u{1F9E0}',nameKey:'wellStress',descKey:'wellStressDesc'}
 ];
 
 /* phase types: inhale, hold, exhale, exercise, rest, work, break, pose */
@@ -808,8 +810,12 @@ var DEFAULT_WELL_PROGRAMS=[
     phases:[{name:'Sis\u00e4\u00e4n',dur:4,type:'inhale'},{name:'Pid\u00e4',dur:4,type:'hold'},{name:'Ulos',dur:4,type:'exhale'},{name:'Pid\u00e4',dur:4,type:'hold'}]},
   {id:'br_478',cat:'breathing',name:'4-7-8 Breathing',desc:'Rauhoittava hengitys',rounds:4,
     phases:[{name:'Sis\u00e4\u00e4n',dur:4,type:'inhale'},{name:'Pid\u00e4',dur:7,type:'hold'},{name:'Ulos',dur:8,type:'exhale'}]},
-  {id:'br_wim',cat:'breathing',name:'Wim Hof',desc:'30 nopeaa hengityst\u00e4 + pito',rounds:3,
-    phases:[{name:'Nopea sis\u00e4\u00e4n-ulos',dur:90,type:'exercise',instruction:'Hengit\u00e4 nopeasti 30 kertaa',breathRate:3},{name:'Hengit\u00e4 ulos',dur:4,type:'exhale',instruction:'Puhalla kaikki ilma ulos'},{name:'Pid\u00e4 hengityst\u00e4',dur:60,type:'hold',instruction:'Pid\u00e4 keuhkot tyhj\u00e4n\u00e4'},{name:'Palautushengitys',dur:15,type:'inhale',instruction:'Hengit\u00e4 syvaan ja pid\u00e4'}]},
+  {id:'br_wim',cat:'breathing',name:'Wim Hof',desc:'30 nopeaa hengityst\u00e4 + pito, 3 kierrosta',rounds:3,
+    phases:[
+      {name:'Nopea hengitys',dur:60,type:'exercise',instruction:'Hengit\u00e4 voimakkaasti sis\u00e4\u00e4n ja ulos, 30 kertaa',breathRate:2},
+      {name:'Viimeinen ulos',dur:6,type:'exhale',instruction:'Puhalla rauhallisesti kaikki ilma ulos'},
+      {name:'Pid\u00e4tys',dur:60,type:'hold',instruction:'Pid\u00e4 keuhkot tyhj\u00e4n\u00e4, rentoudu'},
+      {name:'Palautus',dur:15,type:'inhale',instruction:'Hengit\u00e4 syvaan sis\u00e4\u00e4n ja pid\u00e4 15 sekuntia'}]},
   {id:'br_calm',cat:'breathing',name:'Rauhoittava hengitys',desc:'Pitk\u00e4 uloshengitys',rounds:8,
     phases:[{name:'Sis\u00e4\u00e4n',dur:4,type:'inhale'},{name:'Ulos hitaasti',dur:8,type:'exhale'},{name:'Tauko',dur:2,type:'hold'}]},
   {id:'br_energy',cat:'breathing',name:'Energisoiva hengitys',desc:'Kapaalabhaati-tyylinen',rounds:3,
@@ -847,34 +853,135 @@ var DEFAULT_WELL_PROGRAMS=[
   {id:'pom_50',cat:'pomodoro',name:'Pomodoro 50/10',desc:'50 min ty\u00f6 + 10 min tauko',rounds:2,
     phases:[{name:'Ty\u00f6jakso',dur:3000,type:'work',instruction:'Sy\u00e4v\u00e4 keskittyminen'},{name:'Tauko',dur:600,type:'break',instruction:'Lep\u00e4\u00e4, venyttele'}]},
   /* YOGA */
-  {id:'yog_morning',cat:'yoga',name:'Aamujooga 15 min',desc:'Her\u00e4\u00e4 keho lempe\u00e4sti',rounds:1,
+    {id:'yog_morning',cat:'yoga',name:'Aamujooga 15 min',desc:'Her\u00e4\u00e4 keho lempe\u00e4sti',rounds:1,
     phases:[
-      {name:'Vuoriasento',dur:30,type:'pose',instruction:'Seiso suorana, hengit\u00e4 syvaan'},
-      {name:'Eteentaivutus',dur:30,type:'pose',instruction:'Taivuta eteen, roikuta k\u00e4si\u00e4'},
-      {name:'Koira alaspain',dur:30,type:'pose',instruction:'K\u00e4det ja jalat maassa, lantio yl\u00f6s'},
-      {name:'Koira yl\u00f6sp\u00e4in',dur:20,type:'pose',instruction:'Lantio alas, rinta yl\u00f6s'},
-      {name:'Soturiasento, vasen jalka edess\u00e4',dur:30,type:'pose',instruction:'Vasen jalka eteen, k\u00e4det yl\u00f6s'},
-      {name:'Soturiasento, oikea jalka edess\u00e4',dur:30,type:'pose',instruction:'Oikea jalka eteen, k\u00e4det yl\u00f6s'},
-      {name:'Kolmio, vasen puoli',dur:25,type:'pose',instruction:'Leve\u00e4 haara, taivuta vasemmalle'},
-      {name:'Kolmio, oikea puoli',dur:25,type:'pose',instruction:'Leve\u00e4 haara, taivuta oikealle'},
-      {name:'Puu, vasen jalka maassa',dur:30,type:'pose',instruction:'Seiso vasemmalla jalalla, oikea jalkapohja reiteen'},
-      {name:'Puu, oikea jalka maassa',dur:30,type:'pose',instruction:'Seiso oikealla jalalla, vasen jalkapohja reiteen'},
-      {name:'Istumataivutus',dur:30,type:'pose',instruction:'Istu, taivuta jalkoja kohti'},
-      {name:'Kiertoistunta, vasen puoli',dur:25,type:'pose',instruction:'Istu, kiert\u00e4 vasemmalle'},
-      {name:'Kiertoistunta, oikea puoli',dur:25,type:'pose',instruction:'Istu, kiert\u00e4 oikealle'},
-      {name:'Savasana',dur:60,type:'rest',instruction:'Makaa sel\u00e4ll\u00e4\u00e4n, rentoudu'}]},
+      {name:'Vuoriasento',dur:30,type:'pose',instruction:'Seiso suorana jalat yhdess\u00e4, paino tasaisesti molemmilla jaloilla, k\u00e4det sivuilla, ven\u00e4yt\u00e4 p\u00e4\u00e4laki kohti kattoa'},
+      {name:'Aurinkotervehdys yl\u00f6s',dur:15,type:'pose',instruction:'Nosta k\u00e4det sivukautta yl\u00f6s, sormet yhteen, katse yl\u00f6s, avaa rintakeh\u00e4\u00e4'},
+      {name:'Eteentaivutus',dur:30,type:'pose',instruction:'Taivuta lonkasta eteen selk\u00e4 suorana, anna k\u00e4sien roikkua kohti lattiaa, p\u00e4\u00e4st\u00e4 niska rentoutumaan'},
+      {name:'Koira alaspain',dur:30,type:'pose',instruction:'K\u00e4det hartioiden levyisesti, jalat lantion levyisesti, nosta lantio yl\u00f6s, paina kantap\u00e4it\u00e4 kohti lattiaa, selk\u00e4 suorana'},
+      {name:'Koira yl\u00f6sp\u00e4in',dur:20,type:'pose',instruction:'Pudota lantio alas, paina k\u00e4mmenet lattiaan, nosta rinta yl\u00f6s, avaa olkap\u00e4\u00e4t taakse'},
+      {name:'Soturi yksi, vasen jalka edess\u00e4',dur:30,type:'pose',instruction:'Vasen jalka pitk\u00e4lle eteen, polvi suoraan nilkan yl\u00e4puolelle, takajalka suorana, k\u00e4det yl\u00f6s'},
+      {name:'Soturi yksi, oikea jalka edess\u00e4',dur:30,type:'pose',instruction:'Oikea jalka pitk\u00e4lle eteen, polvi suoraan nilkan yl\u00e4puolelle, takajalka suorana, k\u00e4det yl\u00f6s'},
+      {name:'Soturi kaksi, vasen jalka edess\u00e4',dur:25,type:'pose',instruction:'Leve\u00e4 haara, vasen polvi koukkuun, k\u00e4det sivuille hartioiden korkeudelle, katse vasemmalle'},
+      {name:'Soturi kaksi, oikea jalka edess\u00e4',dur:25,type:'pose',instruction:'Leve\u00e4 haara, oikea polvi koukkuun, k\u00e4det sivuille hartioiden korkeudelle, katse oikealle'},
+      {name:'Kolmio, vasen puoli',dur:25,type:'pose',instruction:'Leve\u00e4 haara, vasen k\u00e4si kohti vasenta nilkkaa, oikea k\u00e4si kohti kattoa, katse yl\u00f6s'},
+      {name:'Kolmio, oikea puoli',dur:25,type:'pose',instruction:'Leve\u00e4 haara, oikea k\u00e4si kohti oikeaa nilkkaa, vasen k\u00e4si kohti kattoa, katse yl\u00f6s'},
+      {name:'Puu, vasen jalka maassa',dur:30,type:'pose',instruction:'Seiso vasemmalla jalalla, aseta oikea jalkapohja vasemman reiden sis\u00e4syrj\u00e4lle, k\u00e4det rintaan tai yl\u00f6s'},
+      {name:'Puu, oikea jalka maassa',dur:30,type:'pose',instruction:'Seiso oikealla jalalla, aseta vasen jalkapohja oikean reiden sis\u00e4syrj\u00e4lle, k\u00e4det rintaan tai yl\u00f6s'},
+      {name:'Istumataivutus',dur:30,type:'pose',instruction:'Istu jalat suorina edess\u00e4, taivuta lonkasta eteenp\u00e4in, tartu jalkoihin tai nilkkoihin'},
+      {name:'Kiertoistunta, vasen puoli',dur:25,type:'pose',instruction:'Istu, oikea polvi koukussa vasemman jalan yli, kiert\u00e4 yl\u00e4vartalo vasemmalle, vasen k\u00e4si polven ulkopuolelle'},
+      {name:'Kiertoistunta, oikea puoli',dur:25,type:'pose',instruction:'Istu, vasen polvi koukussa oikean jalan yli, kiert\u00e4 yl\u00e4vartalo oikealle, oikea k\u00e4si polven ulkopuolelle'},
+      {name:'Savasana',dur:60,type:'rest',instruction:'Makaa sel\u00e4ll\u00e4\u00e4n, k\u00e4det sivuilla k\u00e4mmenet yl\u00f6sp\u00e4in, sulje silm\u00e4t, rentoudu t\u00e4ysin'}]},
   {id:'yog_evening',cat:'yoga',name:'Iltajooga 10 min',desc:'Rauhoitu ja venyttele',rounds:1,
     phases:[
-      {name:'Ristiin istunta',dur:30,type:'pose',instruction:'Istu mukavasti, hengit\u00e4 syvaan'},
-      {name:'Kissaselk\u00e4-lehm\u00e4',dur:30,type:'pose',instruction:'Vuorottele selk\u00e4 py\u00f6re\u00e4ksi ja notkoksi'},
-      {name:'Lantion avaus, vasen puoli',dur:25,type:'pose',instruction:'Aseta vasen polvi alas, ty\u00f6nn\u00e4 lantiota eteen'},
-      {name:'Lantion avaus, oikea puoli',dur:25,type:'pose',instruction:'Aseta oikea polvi alas, ty\u00f6nn\u00e4 lantiota eteen'},
-      {name:'Kyyhky, vasen jalka edess\u00e4',dur:30,type:'pose',instruction:'Vasen s\u00e4\u00e4ri edess\u00e4 poikittain, oikea jalka taakse'},
-      {name:'Kyyhky, oikea jalka edess\u00e4',dur:30,type:'pose',instruction:'Oikea s\u00e4\u00e4ri edess\u00e4 poikittain, vasen jalka taakse'},
-      {name:'Makuukierto, vasen puoli',dur:25,type:'pose',instruction:'Sel\u00e4ll\u00e4\u00e4n, vie polvet vasemmalle'},
-      {name:'Makuukierto, oikea puoli',dur:25,type:'pose',instruction:'Sel\u00e4ll\u00e4\u00e4n, vie polvet oikealle'},
-      {name:'Jalat sein\u00e4lle',dur:40,type:'pose',instruction:'Makaa sel\u00e4ll\u00e4\u00e4n, jalat sein\u00e4\u00e4 vasten'},
-      {name:'Savasana',dur:60,type:'rest',instruction:'Makaa sel\u00e4ll\u00e4\u00e4n, p\u00e4\u00e4st\u00e4 kaikesta irti'}]}
+      {name:'Ristiin istunta',dur:30,type:'pose',instruction:'Istu mukavasti jalat ristiss\u00e4, selk\u00e4 suorana, k\u00e4det polvilla, hengit\u00e4 syvaan'},
+      {name:'Kissaselk\u00e4 ja lehm\u00e4',dur:30,type:'pose',instruction:'Nelinkontin, vuorottele selk\u00e4 py\u00f6re\u00e4ksi ja notkoksi hengityksen tahdissa'},
+      {name:'Lantion avaus, vasen puoli',dur:25,type:'pose',instruction:'Vasen polvi maahan, oikea jalka eteen, ty\u00f6nn\u00e4 lantiota varovasti eteenp\u00e4in'},
+      {name:'Lantion avaus, oikea puoli',dur:25,type:'pose',instruction:'Oikea polvi maahan, vasen jalka eteen, ty\u00f6nn\u00e4 lantiota varovasti eteenp\u00e4in'},
+      {name:'Kyyhky, vasen jalka edess\u00e4',dur:30,type:'pose',instruction:'Vasen s\u00e4\u00e4ri poikittain edess\u00e4, oikea jalka suorana taakse, paina lantiota alas'},
+      {name:'Kyyhky, oikea jalka edess\u00e4',dur:30,type:'pose',instruction:'Oikea s\u00e4\u00e4ri poikittain edess\u00e4, vasen jalka suorana taakse, paina lantiota alas'},
+      {name:'Makuukierto, vasen puoli',dur:25,type:'pose',instruction:'Sel\u00e4ll\u00e4\u00e4n, vie molemmat polvet vasemmalle, k\u00e4det sivuille, katse oikealle'},
+      {name:'Makuukierto, oikea puoli',dur:25,type:'pose',instruction:'Sel\u00e4ll\u00e4\u00e4n, vie molemmat polvet oikealle, k\u00e4det sivuille, katse vasemmalle'},
+      {name:'Jalat sein\u00e4lle',dur:40,type:'pose',instruction:'Makaa sel\u00e4ll\u00e4\u00e4n, nosta jalat sein\u00e4\u00e4 vasten, anna verenkierron palautua'},
+      {name:'Savasana',dur:60,type:'rest',instruction:'Makaa sel\u00e4ll\u00e4\u00e4n, p\u00e4\u00e4st\u00e4 kaikesta irti, anna kehon painua alustaan'}]},
+  {id:'yog_yin',cat:'yoga',name:'Yin-jooga 20 min',desc:'Syv\u00e4t pitk\u00e4t venytykset, sidekudosten avaus',rounds:1,
+    phases:[
+      {name:'Perhonen',dur:120,type:'pose',instruction:'Istu, jalkapohjat yhteen, polvet sivuille, taivuta eteenp\u00e4in, anna painovoiman vet\u00e4\u00e4'},
+      {name:'Lohik\u00e4\u00e4rme, vasen puoli',dur:120,type:'pose',instruction:'Vasen jalka pitk\u00e4lle eteen askelkyykkyyn, oikea polvi maassa, anna lantion vajota, tunne lonkankoukistaja'},
+      {name:'Lohik\u00e4\u00e4rme, oikea puoli',dur:120,type:'pose',instruction:'Oikea jalka pitk\u00e4lle eteen askelkyykkyyn, vasen polvi maassa, anna lantion vajota, tunne lonkankoukistaja'},
+      {name:'Toukka',dur:120,type:'pose',instruction:'Istu jalat suorina, taivuta hitaasti eteenp\u00e4in, anna sel\u00e4n py\u00f6risty\u00e4, rentoudu asentoon'},
+      {name:'Sfinksi',dur:90,type:'pose',instruction:'Makaa mahallaan, kyyn\u00e4rp\u00e4\u00e4t hartioiden alle, nosta rintakeh\u00e4\u00e4 lempe\u00e4sti, avaa sel\u00e4n etuosa'},
+      {name:'Banaani, vasen puoli',dur:90,type:'pose',instruction:'Makaa sel\u00e4ll\u00e4\u00e4n, vie jalat ja yl\u00e4vartalo vasemmalle kaareen, tunne oikea kylki avautuvan'},
+      {name:'Banaani, oikea puoli',dur:90,type:'pose',instruction:'Makaa sel\u00e4ll\u00e4\u00e4n, vie jalat ja yl\u00e4vartalo oikealle kaareen, tunne vasen kylki avautuvan'},
+      {name:'Makuukierto, vasen puoli',dur:90,type:'pose',instruction:'Sel\u00e4ll\u00e4\u00e4n, vie oikea polvi vasemmalle puolelle, k\u00e4det sivuille, hengit\u00e4 syvaan'},
+      {name:'Makuukierto, oikea puoli',dur:90,type:'pose',instruction:'Sel\u00e4ll\u00e4\u00e4n, vie vasen polvi oikealle puolelle, k\u00e4det sivuille, hengit\u00e4 syvaan'},
+      {name:'Savasana',dur:120,type:'rest',instruction:'Makaa sel\u00e4ll\u00e4\u00e4n, anna kehon sulautua alustaan, hengit\u00e4 vapaasti'}]},
+  {id:'yog_office',cat:'yoga',name:'Toimistojooga 8 min',desc:'Tuolilla istuen, taukoliikunta',rounds:1,
+    phases:[
+      {name:'Istuva hengitys',dur:20,type:'pose',instruction:'Istu tuolilla suorana, jalat lattiassa, k\u00e4det polvilla, hengit\u00e4 kolme syvaa hengityst\u00e4'},
+      {name:'Niskan kierto',dur:20,type:'pose',instruction:'K\u00e4\u00e4nn\u00e4 p\u00e4\u00e4t\u00e4 hitaasti vasemmalle, pid\u00e4, sitten oikealle'},
+      {name:'Olkap\u00e4iden pyoritys',dur:20,type:'pose',instruction:'Py\u00f6rit\u00e4 olkap\u00e4it\u00e4 taaksep\u00e4in isoin liikkein, tunne rintakeh\u00e4n avautuvan'},
+      {name:'Istuva kierto, vasen',dur:20,type:'pose',instruction:'Ota vasemmalla k\u00e4dell\u00e4 tuolin selk\u00e4nojasta, kiert\u00e4 vasemmalle, katse taakse'},
+      {name:'Istuva kierto, oikea',dur:20,type:'pose',instruction:'Ota oikealla k\u00e4dell\u00e4 tuolin selk\u00e4nojasta, kiert\u00e4 oikealle, katse taakse'},
+      {name:'Istuva eteentaivutus',dur:25,type:'pose',instruction:'Taivuta eteenp\u00e4in, anna k\u00e4sien roikkua kohti lattiaa, p\u00e4\u00e4st\u00e4 niska ja hartiat rentoutumaan'},
+      {name:'Rintakeh\u00e4n avaus',dur:20,type:'pose',instruction:'Ota k\u00e4det selk\u00e4nojan taakse, avaa rintakeh\u00e4 eteenp\u00e4in, katse yl\u00f6s'},
+      {name:'Lonkankoukistaja, vasen',dur:25,type:'pose',instruction:'Nosta vasen nilkka oikean polven p\u00e4\u00e4lle, paina varovasti polvea alas, tunne lonkan avautuvan'},
+      {name:'Lonkankoukistaja, oikea',dur:25,type:'pose',instruction:'Nosta oikea nilkka vasemman polven p\u00e4\u00e4lle, paina varovasti polvea alas, tunne lonkan avautuvan'},
+      {name:'Ranteiden py\u00f6ritys',dur:15,type:'pose',instruction:'Py\u00f6rit\u00e4 ranteita molempiin suuntiin, avaa sormet ja purista nyrkkiin'},
+      {name:'P\u00e4\u00e4t\u00f6shengitys',dur:20,type:'pose',instruction:'Sulje silm\u00e4t, hengit\u00e4 kolme syvaa hengityst\u00e4, tunne olosi virkist\u00e4ytyneeksi'}]},
+  {id:'yog_power',cat:'yoga',name:'Voimajooga 20 min',desc:'Aktiivinen ja haastava',rounds:1,
+    phases:[
+      {name:'Aurinkotervehdys A',dur:40,type:'pose',instruction:'Yl\u00f6s, eteen, lankku, koira alas, koira yl\u00f6s, koira alas, hyppy eteen, yl\u00f6s'},
+      {name:'Tuoliasento',dur:30,type:'pose',instruction:'Jalat yhdess\u00e4, istu n\u00e4kym\u00e4tt\u00f6m\u00e4lle tuolille, k\u00e4det yl\u00f6s, reidet ty\u00f6skentelev\u00e4t'},
+      {name:'Soturi kolme, vasen',dur:30,type:'pose',instruction:'Seiso vasemmalla jalalla, kallista yl\u00e4vartalo eteen, oikea jalka taakse samaan linjaan, k\u00e4det sivuilla'},
+      {name:'Soturi kolme, oikea',dur:30,type:'pose',instruction:'Seiso oikealla jalalla, kallista yl\u00e4vartalo eteen, vasen jalka taakse samaan linjaan, k\u00e4det sivuilla'},
+      {name:'Lankku',dur:45,type:'pose',instruction:'K\u00e4det hartioiden alla, vartalo suorana kuin lauta, vatsa tiukkana, hengit\u00e4 tasaisesti'},
+      {name:'Sivulankku, vasen',dur:25,type:'pose',instruction:'K\u00e4\u00e4nny vasemmalle, vasen k\u00e4si maassa, oikea k\u00e4si kohti kattoa, pid\u00e4 lantio yl\u00f6s'},
+      {name:'Sivulankku, oikea',dur:25,type:'pose',instruction:'K\u00e4\u00e4nny oikealle, oikea k\u00e4si maassa, vasen k\u00e4si kohti kattoa, pid\u00e4 lantio yl\u00f6s'},
+      {name:'Vene',dur:30,type:'pose',instruction:'Istu, nosta jalat il\u00e4mn 45 astetta, k\u00e4det jalkoja kohti, vatsalihakset ty\u00f6skentelev\u00e4t'},
+      {name:'Silta',dur:30,type:'pose',instruction:'Sel\u00e4ll\u00e4\u00e4n, polvet koukussa, nosta lantio yl\u00f6s, purista pakaroita, avaa rintakeh\u00e4'},
+      {name:'Kaari, vasen',dur:25,type:'pose',instruction:'Leve\u00e4 haara, vasen polvi koukkuun, nosta k\u00e4det yl\u00f6s ja taivuta oikealle'},
+      {name:'Kaari, oikea',dur:25,type:'pose',instruction:'Leve\u00e4 haara, oikea polvi koukkuun, nosta k\u00e4det yl\u00f6s ja taivuta vasemmalle'},
+      {name:'Koira alaspain',dur:30,type:'pose',instruction:'Lepo-asento, paina kantap\u00e4it\u00e4 lattiaan, p\u00e4\u00e4 rentona'},
+      {name:'Savasana',dur:60,type:'rest',instruction:'Makaa sel\u00e4ll\u00e4\u00e4n, anna lihasten palautua, hengit\u00e4 vapaasti'}]},
+  /* STRESS MANAGEMENT */
+  {id:'str_pmr',cat:'stress',name:'Progressiivinen rentoutus',desc:'Jännitä ja rentouta lihasryhmät',rounds:1,
+    phases:[
+      {name:'Valmistaudu',dur:15,type:'rest',instruction:'Makaa tai istu mukavasti, sulje silm\u00e4t, hengit\u00e4 rauhallisesti'},
+      {name:'J\u00e4nnit\u00e4 jalat',dur:8,type:'exercise',instruction:'Purista varpaita yhteen, j\u00e4nnit\u00e4 jalkater\u00e4t ja pohkeet voimakkaasti'},
+      {name:'Rentouta jalat',dur:15,type:'rest',instruction:'P\u00e4\u00e4st\u00e4 irti, tunne l\u00e4mp\u00f6 ja rentous jaloissa'},
+      {name:'J\u00e4nnit\u00e4 reidet',dur:8,type:'exercise',instruction:'J\u00e4nnit\u00e4 reidet ja pakarat voimakkaasti'},
+      {name:'Rentouta reidet',dur:15,type:'rest',instruction:'P\u00e4\u00e4st\u00e4 irti, anna reisien vajota alustaan'},
+      {name:'J\u00e4nnit\u00e4 vatsa',dur:8,type:'exercise',instruction:'J\u00e4nnit\u00e4 vatsalihakset kuin ly\u00f6ntiin varautuisit'},
+      {name:'Rentouta vatsa',dur:15,type:'rest',instruction:'P\u00e4\u00e4st\u00e4 irti, tunne vatsan pehmentyvn'},
+      {name:'J\u00e4nnit\u00e4 k\u00e4det',dur:8,type:'exercise',instruction:'Purista nyrkit tiukkaan, j\u00e4nnit\u00e4 k\u00e4sivarret'},
+      {name:'Rentouta k\u00e4det',dur:15,type:'rest',instruction:'Avaa k\u00e4det, tunne sormien rentoutuvan'},
+      {name:'J\u00e4nnit\u00e4 hartiat',dur:8,type:'exercise',instruction:'Nosta hartiat korviin, j\u00e4nnit\u00e4 voimakkaasti'},
+      {name:'Rentouta hartiat',dur:15,type:'rest',instruction:'Pudota hartiat, tunne painon l\u00e4htev\u00e4n'},
+      {name:'J\u00e4nnit\u00e4 kasvot',dur:8,type:'exercise',instruction:'Irvit\u00e4, j\u00e4nnit\u00e4 kaikki kasvojen lihakset'},
+      {name:'Rentouta kasvot',dur:15,type:'rest',instruction:'P\u00e4\u00e4st\u00e4 irti, anna kasvojen pehmentyaae'},
+      {name:'Koko keho',dur:30,type:'rest',instruction:'Tunne koko kehon rentous, hengit\u00e4 rauhallisesti'}]},
+  {id:'str_grounding',cat:'stress',name:'Maadoitusharjoitus 5-4-3-2-1',desc:'Aistien kautta nykyhetkeen',rounds:1,
+    phases:[
+      {name:'Hengit\u00e4 syvaan',dur:15,type:'inhale',instruction:'Hengit\u00e4 kolme syvaa hengityst\u00e4'},
+      {name:'Viisi asiaa n\u00e4et',dur:30,type:'exercise',instruction:'Nime\u00e4 mieless\u00e4si viisi asiaa jotka n\u00e4et ymp\u00e4rill\u00e4si'},
+      {name:'Nelj\u00e4 asiaa tunnet',dur:30,type:'exercise',instruction:'Tunne nelj\u00e4 eri pintaa tai materiaalia k\u00e4sill\u00e4si'},
+      {name:'Kolme \u00e4\u00e4nt\u00e4 kuulet',dur:25,type:'exercise',instruction:'Kuuntele kolme eri \u00e4\u00e4nt\u00e4 ymp\u00e4rist\u00f6ss\u00e4si'},
+      {name:'Kaksi tuoksua',dur:20,type:'exercise',instruction:'Haista kaksi eri tuoksua'},
+      {name:'Yksi maku',dur:15,type:'exercise',instruction:'Maista jotain tai tunnista maku suussasi'},
+      {name:'Rauhoitu',dur:20,type:'rest',instruction:'Olet turvassa t\u00e4ss\u00e4 hetkess\u00e4'}]},
+  {id:'str_bodyscan',cat:'stress',name:'Nopea kehoskannaus',desc:'3 min stressin purkaminen',rounds:1,
+    phases:[
+      {name:'P\u00e4\u00e4laki',dur:15,type:'exercise',instruction:'Tunne p\u00e4\u00e4laki, p\u00e4\u00e4st\u00e4 j\u00e4nnitys'},
+      {name:'Otsa ja silm\u00e4t',dur:15,type:'exercise',instruction:'Rentouta otsa, p\u00e4\u00e4st\u00e4 silm\u00e4t pehmeiksi'},
+      {name:'Leuka',dur:10,type:'exercise',instruction:'Avaa suu hieman, rentouta leuka'},
+      {name:'Niska ja hartiat',dur:20,type:'exercise',instruction:'Pudota hartiat pois korvista, tunne painon l\u00e4htev\u00e4n'},
+      {name:'K\u00e4det',dur:15,type:'exercise',instruction:'Ravista k\u00e4si\u00e4 kevyesti, anna niiden olla raskaat'},
+      {name:'Vatsa',dur:15,type:'exercise',instruction:'Anna vatsan olla pehme\u00e4, hengit\u00e4 sinne'},
+      {name:'Jalat',dur:15,type:'exercise',instruction:'Tunne jalkapohjat lattiassa, olet tuettu'},
+      {name:'Koko keho',dur:20,type:'rest',instruction:'Hengit\u00e4 syvaan, olet rauhallinen'}]},
+  {id:'str_selftalk',cat:'stress',name:'My\u00f6nteinen sis\u00e4inen puhe',desc:'Affirmaatoita ja rauhoittumista',rounds:1,
+    phases:[
+      {name:'Hengit\u00e4',dur:15,type:'inhale',instruction:'Sulje silm\u00e4t, hengit\u00e4 rauhallisesti'},
+      {name:'Olen turvassa',dur:20,type:'exercise',instruction:'Toista mieless\u00e4si: Olen turvassa t\u00e4ss\u00e4 hetkess\u00e4'},
+      {name:'Hengitys',dur:10,type:'exhale',instruction:'Hengit\u00e4 ulos stressi'},
+      {name:'Selviydn',dur:20,type:'exercise',instruction:'Toista: Min\u00e4 selviydn t\u00e4st\u00e4'},
+      {name:'Hengitys',dur:10,type:'inhale',instruction:'Hengit\u00e4 sis\u00e4\u00e4n rauhaa'},
+      {name:'Olen vahva',dur:20,type:'exercise',instruction:'Toista: Olen vahvempi kuin luulen'},
+      {name:'Hengitys',dur:10,type:'exhale',instruction:'P\u00e4\u00e4st\u00e4 irti huolista'},
+      {name:'Kiitollisuus',dur:25,type:'exercise',instruction:'Ajattele kolmea asiaa joista olet kiitollinen'},
+      {name:'Rauha',dur:20,type:'rest',instruction:'Tunne sis\u00e4inen rauha, avaa silm\u00e4t hitaasti'}]},
+  {id:'str_nsdr',cat:'stress',name:'NSDR',desc:'Non-Sleep Deep Rest, syvaerentoutus',rounds:1,
+    phases:[
+      {name:'Asettuminen',dur:20,type:'rest',instruction:'Makaa sel\u00e4ll\u00e4\u00e4n mukavasti, sulje silm\u00e4t'},
+      {name:'Pitk\u00e4 uloshengitys',dur:60,type:'exhale',instruction:'Hengit\u00e4 sis\u00e4\u00e4n nenaan, ulos suun kautta pitk\u00e4\u00e4n. Toista rauhallisesti'},
+      {name:'Kehon painon tunteminen',dur:40,type:'exercise',instruction:'Tunne kehosi paino alustaa vasten, anna painovoiman vet\u00e4\u00e4'},
+      {name:'Jalkojen rentoutus',dur:30,type:'exercise',instruction:'Kuvittele l\u00e4mmint\u00e4 virtaa jalkoihin, ne muuttuvat raskaiksi'},
+      {name:'Vartalon rentoutus',dur:30,type:'exercise',instruction:'L\u00e4mmin virta nousee vatsaan ja rintaan, kaikki pehmenee'},
+      {name:'K\u00e4sien rentoutus',dur:25,type:'exercise',instruction:'K\u00e4det muuttuvat l\u00e4mpimiksi ja raskaiksi'},
+      {name:'P\u00e4\u00e4n rentoutus',dur:25,type:'exercise',instruction:'Otsa, silm\u00e4t, leuka, kaikki pehmenee'},
+      {name:'Syvae lepo',dur:120,type:'rest',instruction:'Anna mielen levata, \u00e4l\u00e4 yrit\u00e4 mit\u00e4\u00e4n'},
+      {name:'Her\u00e4\u00e4minen',dur:20,type:'exercise',instruction:'Liikuta sormia ja varpaita, avaa silm\u00e4t hitaasti'}]}
 ];
 
 function getWellPrograms(){try{var d=JSON.parse(store.get('pt4_well'));return(d&&d.length)?d:null;}catch(e){return null;}}
@@ -912,14 +1019,10 @@ function startWell(progId){
   var progs=getWellPrograms()||[];var prog=null;
   for(var i=0;i<progs.length;i++){if(progs[i].id===progId){prog=progs[i];break;}}
   if(!prog||!prog.phases||!prog.phases.length)return;
-  WE={phase:'active',prog:prog,phases:prog.phases,phaseIdx:0,timeLeft:prog.phases[0].dur,round:1,totalRounds:prog.rounds||1,startTime:Date.now(),pauseTotal:0,pausedAt:0,announcing:true};
-  view='wellactive';clearAllTimers();render();
-  var p0=prog.phases[0];
-  announceCalm(wellPhaseText(p0),function(){
-    if(WE.phase!=='active')return;
-    calm(T().wellGo);
-    setTimeout(function(){WE.announcing=false;timer=setInterval(wellTick,1000);render();},800);
-  });
+  WE={phase:'active',prog:prog,phases:prog.phases,phaseIdx:0,timeLeft:prog.phases[0].dur,round:1,totalRounds:prog.rounds||1,startTime:Date.now(),pauseTotal:0,pausedAt:0};
+  view='wellactive';clearAllTimers();
+  calm(wellPhaseText(prog.phases[0]));
+  timer=setInterval(wellTick,1000);render();
 }
 
 function wellPhaseText(ph){
@@ -933,7 +1036,7 @@ function wellPhaseText(ph){
 }
 
 function wellTick(){
-  if(WE.phase!=='active'||WE.announcing)return;
+  if(WE.phase!=='active')return;
   WE.timeLeft--;
   var ph=WE.phases[WE.phaseIdx];
   if(WE.timeLeft<=0){
@@ -943,31 +1046,23 @@ function wellTick(){
       WE.round++;
       if(WE.round>WE.totalRounds){finishWell();return;}
       WE.phaseIdx=0;
+      calm(T().wellRound+' '+WE.round);
     }
     var np=WE.phases[WE.phaseIdx];
     WE.timeLeft=np.dur;
-    /* Pause timer, announce phase, say "Aloita/Go", then start timer */
-    WE.announcing=true;clearAllTimers();
-    var text=wellPhaseText(np);
-    if(WE.round>1&&WE.phaseIdx===0)text=T().wellRound+' '+WE.round+'. '+text;
-    announceCalm(text,function(){
-      if(WE.phase!=='active')return;
-      WE.announcing=false;
-      timer=setInterval(wellTick,1000);
-      render();
-    });
-    render();return;
+    /* Speak phase instruction */
+    calm(wellPhaseText(np));
   }
-  /* Guided rapid breathing: alternate inhale/exhale - speech only */
-  if(ph.breathRate&&ph.breathRate>0&&WE.timeLeft>4){
+  /* Guided rapid breathing */
+  if(ph.breathRate&&ph.breathRate>0&&WE.timeLeft>2){
     var elInPhase=ph.dur-WE.timeLeft;
     var half=Math.floor(ph.breathRate/2);
     var posInCycle=elInPhase%ph.breathRate;
-    if(posInCycle===0)calmQueue(T().wellInhale);
-    else if(posInCycle===half)calmQueue(T().wellExhale);
+    if(posInCycle===0)breathCue(T().wellInhale);
+    else if(posInCycle===half)breathCue(T().wellExhale);
   }
-  /* Mid-phase reminders for long phases */
-  if(ph.dur>60&&WE.timeLeft===Math.floor(ph.dur/2)&&ph.type==='work'){calmQueue(T().wellFocus+'. '+Math.floor(WE.timeLeft/60)+' '+T().runMin);}
+  /* Mid-phase reminders */
+  if(ph.dur>60&&WE.timeLeft===Math.floor(ph.dur/2)&&(ph.type==='work'||ph.type==='exercise')){calmQueue(T().wellFocus+'. '+Math.floor(WE.timeLeft/60)+' '+T().runMin);}
   if(ph.dur>60&&WE.timeLeft===60&&(ph.type==='work'||ph.type==='exercise')){calmQueue(T().runOneMinLeft);}
   render();updateLockInfo();
 }
@@ -979,9 +1074,23 @@ function finishWell(){
   saveWellHistory({date:new Date().toISOString(),progName:WE.prog.name,dur:Date.now()-WE.startTime-WE.pauseTotal});
   render();
 }
-function pauseWell(){if(WE.phase!=='active')return;WE.phase='paused';WE.announcing=false;WE.pausedAt=Date.now();clearAllTimers();try{speechSynthesis.cancel();}catch(e){}calm(T().pause);render();}
-function resumeWell(){if(WE.phase!=='paused')return;WE.pauseTotal+=(Date.now()-WE.pausedAt);WE.phase='active';WE.announcing=false;clearAllTimers();timer=setInterval(wellTick,1000);calm(T().wellGo);render();}
+function pauseWell(){if(WE.phase!=='active')return;WE.phase='paused';WE.pausedAt=Date.now();clearAllTimers();try{speechSynthesis.cancel();}catch(e){}calm(T().pause);render();}
+function resumeWell(){if(WE.phase!=='paused')return;WE.pauseTotal+=(Date.now()-WE.pausedAt);WE.phase='active';clearAllTimers();timer=setInterval(wellTick,1000);calm(T().wellGo);render();}
 function stopWell(){clearAllTimers();WE.phase='idle';try{speechSynthesis.cancel();}catch(e){}stopAudioKeepAlive();releaseWakeLock();}
+function skipWell(){
+  if(WE.phase!=='active')return;
+  try{speechSynthesis.cancel();}catch(e){}
+  WE.phaseIdx++;
+  if(WE.phaseIdx>=WE.phases.length){
+    WE.round++;
+    if(WE.round>WE.totalRounds){finishWell();return;}
+    WE.phaseIdx=0;
+  }
+  var np=WE.phases[WE.phaseIdx];
+  WE.timeLeft=np.dur;
+  calm(wellPhaseText(np));
+  render();
+}
 
 
 function goHome(){view='home';stopWorkout();stopRun();stopWell();if(gpsCheckId)try{navigator.geolocation.clearWatch(gpsCheckId);}catch(e){}gpsCheckId=null;render();}
@@ -1090,6 +1199,7 @@ document.addEventListener('click',function(e){
   else if(a==='wellstop'){stopWell();wellCat='';view='wellhome';render();}
   else if(a==='wellpause')pauseWell();
   else if(a==='wellresume')resumeWell();
+  else if(a==='wellskip')skipWell();
   else if(a==='welllock')lockScreen();
   else if(a==='wellreset'){WE.phase='idle';wellCat='';view='wellhome';render();}
   else if(a==='wellcancel'){view='wellhome';render();}
@@ -1506,8 +1616,7 @@ function renderWellHome(app){
   }else{
     /* Show programs in category */
     var cat=null;for(var ci2=0;ci2<WELL_CATEGORIES.length;ci2++){if(WELL_CATEGORIES[ci2].id===wellCat)cat=WELL_CATEGORIES[ci2];}
-    h+='<div style="cursor:pointer;font-size:12px;color:var(--muted);margin-bottom:12px" data-action="wellcat" data-val="">\u2190 '+(lang==='fi'?'Takaisin':'Back')+'</div>';
-    if(cat)h+='<div style="text-align:center;font-size:32px;margin:8px 0">'+cat.icon+'</div>';
+    h+='<div class="hdr" style="border-bottom:none"><button class="hdr-back" data-action="wellcat" data-val="">\u2190</button><div style="flex:1"><div class="hdr-title">'+(cat?cat.icon+' '+T()[cat.nameKey]:'')+'</div></div></div>';
     var progs2=(getWellPrograms()||[]).filter(function(p){return p.cat===wellCat;});
     for(var pi=0;pi<progs2.length;pi++){var wp=progs2[pi];
       var totalSec=0;for(var ph=0;ph<wp.phases.length;ph++)totalSec+=wp.phases[ph].dur;totalSec*=(wp.rounds||1);
@@ -1588,7 +1697,7 @@ function renderWellActive(app,btm){
   if(nextIdx<WE.phases.length){h2+='<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px">'+T().wellNextPhase+' '+esc(WE.phases[nextIdx].name)+'</div>';}
   else if(WE.round<WE.totalRounds){h2+='<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px">'+T().wellRound+' '+(WE.round+1)+' \u2192</div>';}
   app.innerHTML=h2;
-  btm.innerHTML='<button class="btn danger" data-action="wellstop">'+T().uiStop+'</button><button class="btn sm" data-action="wellpause">'+T().uiPause+'</button><button class="btn sm" data-action="welllock" style="background:#222;border-color:#444;color:#888">\u{1F512}</button>';
+  btm.innerHTML='<button class="btn danger" data-action="wellstop">'+T().uiStop+'</button><button class="btn sm" data-action="wellpause">'+T().uiPause+'</button><button class="btn sm" data-action="wellskip">'+T().uiSkip+'</button><button class="btn sm" data-action="welllock" style="background:#222;border-color:#444;color:#888">\u{1F512}</button>';
 }
 
 
