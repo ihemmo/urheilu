@@ -117,6 +117,23 @@ var store={get:function(k){try{var v=localStorage.getItem(k);if(v!==null)return 
 
 var audioCtx=null;
 function initAudio(){if(audioCtx)return;try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();var b=audioCtx.createBuffer(1,1,22050);var s=audioCtx.createBufferSource();s.buffer=b;s.connect(audioCtx.destination);s.start(0);}catch(e){}}
+/* iOS audio keepalive: play tiny silent buffer every 4s to prevent AudioContext suspension.
+   Uses buffer source (not oscillator) so it doesn't hold an audio session that blocks Spotify. */
+var audioKeepAlive=null;
+function startAudioKeepAlive(){
+  if(audioKeepAlive)return;
+  audioKeepAlive=setInterval(function(){
+    if(!audioCtx)return;
+    try{
+      if(audioCtx.state==='suspended')audioCtx.resume();
+      var b=audioCtx.createBuffer(1,1,22050);
+      var s=audioCtx.createBufferSource();s.buffer=b;
+      var g=audioCtx.createGain();g.gain.value=0.001;
+      s.connect(g);g.connect(audioCtx.destination);s.start(0);
+    }catch(e){}
+  },4000);
+}
+function stopAudioKeepAlive(){if(audioKeepAlive){clearInterval(audioKeepAlive);audioKeepAlive=null;}}
 function beep(f,d){if(!audioCtx)return;try{if(audioCtx.state==='suspended')audioCtx.resume();var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.value=f;g.gain.value=0.3;o.start();o.stop(audioCtx.currentTime+d/1000);}catch(e){}}
 function shortBeep(){beep(800,150);}function longBeep(){beep(1200,400);}
 function plingOk(){if(!audioCtx)return;try{var t=audioCtx.currentTime;var o1=audioCtx.createOscillator(),o2=audioCtx.createOscillator(),g=audioCtx.createGain();o1.connect(g);o2.connect(g);g.connect(audioCtx.destination);o1.frequency.value=880;o2.frequency.value=1320;g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.01,t+0.4);o1.start(t);o1.stop(t+0.2);o2.start(t+0.15);o2.stop(t+0.4);}catch(e){}}
@@ -649,14 +666,14 @@ function startRunFromPrep(){
 }
 
 function startRun(progId){
-  initAudio();requestWakeLock();
+  initAudio();startAudioKeepAlive();requestWakeLock();
   var progs=getRunPrograms()||[];var prog=null;
   for(var i=0;i<progs.length;i++){if(progs[i].id===progId){prog=progs[i];break;}}
   if(!prog)return;
   var flat=prog.type==='interval'?flattenPhases(prog):[];
   R={phase:'active',prog:prog,startTime:Date.now(),pauseTotal:0,pausedAt:0,distance:0,positions:[],lastSpeechAt:0,prevPace:0,watchId:null,finishTime:0,phaseIdx:0,phaseTimeLeft:flat.length>0?flat[0].dur:0,flatPhases:flat,roundNum:0};
   gpsBuf=[];gpsSmoothed=null;gpsLastAccepted=null;paceCheckLast=0;paceWasOk=false;
-  if(!startGPS()){R.phase='idle';releaseWakeLock();return;}
+  if(!startGPS()){R.phase='idle';stopAudioKeepAlive();releaseWakeLock();return;}
   view='runactive';
   clearAllTimers();timer=setInterval(runTick,1000);
   if(prog.type==='interval'&&flat.length>0){bark(flat[0].name+'! '+Math.floor(flat[0].dur/60)+' '+T().runMin+'!');}
@@ -760,7 +777,7 @@ function resumeRun(){if(R.phase!=='paused')return;R.pauseTotal+=(Date.now()-R.pa
 function cooperRating(d){if(d>=3000)return T().runCooperExcellent;if(d>=2600)return T().runCooperGood;if(d>=2200)return T().runCooperAvg;if(d>=1800)return T().runCooperBelow;return T().runCooperLow;}
 
 function finishRun(){
-  clearAllTimers();stopGPS();R.phase='finished';R.finishTime=Date.now();releaseWakeLock();
+  clearAllTimers();stopGPS();R.phase='finished';R.finishTime=Date.now();stopAudioKeepAlive();releaseWakeLock();
   var dur=runElapsed(),distM=Math.round(R.distance);
   var msg=T().runFinish+' '+distM+' '+T().runMeters+'! ';
   if(R.prog.type==='cooper')msg+=cooperRating(distM);
@@ -769,7 +786,7 @@ function finishRun(){
   saveRunHistory({date:new Date().toISOString(),dur:dur,distance:distM,progName:R.prog.name,type:R.prog.type});
   render();
 }
-function stopRun(){clearAllTimers();stopGPS();R.phase='idle';try{speechSynthesis.cancel();}catch(e){}releaseWakeLock();unlockScreen();}
+function stopRun(){clearAllTimers();stopGPS();R.phase='idle';try{speechSynthesis.cancel();}catch(e){}stopAudioKeepAlive();releaseWakeLock();unlockScreen();}
 
 
 /* ========== WELLBEING MODULE ========== */
@@ -891,7 +908,7 @@ function startWellFromPrep(){
 }
 
 function startWell(progId){
-  initAudio();requestWakeLock();
+  initAudio();startAudioKeepAlive();requestWakeLock();
   var progs=getWellPrograms()||[];var prog=null;
   for(var i=0;i<progs.length;i++){if(progs[i].id===progId){prog=progs[i];break;}}
   if(!prog||!prog.phases||!prog.phases.length)return;
@@ -961,7 +978,7 @@ function wellTick(){
 }
 
 function finishWell(){
-  clearAllTimers();WE.phase='finished';releaseWakeLock();
+  clearAllTimers();WE.phase='finished';stopAudioKeepAlive();releaseWakeLock();
   try{speechSynthesis.cancel();}catch(e){}
   softChime();calmAfter(T().wellSessionDone,600);
   saveWellHistory({date:new Date().toISOString(),progName:WE.prog.name,dur:Date.now()-WE.startTime-WE.pauseTotal});
@@ -969,7 +986,7 @@ function finishWell(){
 }
 function pauseWell(){if(WE.phase!=='active')return;WE.phase='paused';WE.announcing=false;WE.pausedAt=Date.now();clearAllTimers();try{speechSynthesis.cancel();}catch(e){}calm(T().pause);render();}
 function resumeWell(){if(WE.phase!=='paused')return;WE.pauseTotal+=(Date.now()-WE.pausedAt);WE.phase='active';WE.announcing=false;clearAllTimers();timer=setInterval(wellTick,1000);softStart();render();}
-function stopWell(){clearAllTimers();WE.phase='idle';try{speechSynthesis.cancel();}catch(e){}releaseWakeLock();}
+function stopWell(){clearAllTimers();WE.phase='idle';try{speechSynthesis.cancel();}catch(e){}stopAudioKeepAlive();releaseWakeLock();}
 
 
 function goHome(){view='home';stopWorkout();stopRun();stopWell();if(gpsCheckId)try{navigator.geolocation.clearWatch(gpsCheckId);}catch(e){}gpsCheckId=null;render();}
@@ -980,12 +997,12 @@ function goPrep(progId){var progs=getPrograms()||[];prepProg=null;for(var i=0;i<
 function saveProg(){if(!editProg.name.trim())return;editProg.exercises=editProg.exercises.filter(function(e){return e.name.trim();});if(!editProg.exercises.length)return;var progs=getPrograms()||[];var idx=-1;for(var i=0;i<progs.length;i++){if(progs[i].id===editProg.id){idx=i;break;}}if(idx>=0)progs[idx]=editProg;else progs.push(editProg);savePrograms(progs);goHome();}
 
 function clearAllTimers(){clearInterval(timer);timer=null;}
-function stopWorkout(){clearAllTimers();W.phase='idle';W.paused=false;try{speechSynthesis.cancel();}catch(e){}releaseWakeLock();unlockScreen();}
+function stopWorkout(){clearAllTimers();W.phase='idle';W.paused=false;try{speechSynthesis.cancel();}catch(e){}stopAudioKeepAlive();releaseWakeLock();unlockScreen();}
 function pauseWorkout(){if(W.paused)return;W.paused=true;W.pausedAt=Date.now();clearAllTimers();try{speechSynthesis.cancel();}catch(e){}bark(T().pause);render();}
 function resumeWorkout(){if(!W.paused)return;W.pauseTotal+=(Date.now()-W.pausedAt);W.paused=false;if(W.exercises[W.exIdx].modeType!=='reps'){timer=setInterval(tick,1000);}bark(rndFrom(T().resume));longBeep();render();}
 
 function startWorkout(progId){
-  initAudio();requestWakeLock();var progs=getPrograms()||[];var prog=null;
+  initAudio();startAudioKeepAlive();requestWakeLock();var progs=getPrograms()||[];var prog=null;
   for(var i=0;i<progs.length;i++){if(progs[i].id===progId){prog=progs[i];break;}}
   if(!prog||!prog.exercises.length)return;
   W={phase:'active',progName:prog.name,exercises:prog.exercises,workSec:prog.workSec||45,restSec:prog.restSec||10,exIdx:0,mode:'countdown',timeLeft:5,totalStart:Date.now(),exDurs:[],paused:false,pausedAt:0,pauseTotal:0};
@@ -1023,7 +1040,7 @@ function advanceExercise(){
 
 function completeReps(){if(W.mode!=='work'||W.exercises[W.exIdx].modeType!=='reps')return;advanceExercise();}
 
-function finishWorkout(){clearAllTimers();W.phase='finished';W.paused=false;releaseWakeLock();unlockScreen();var dur=Date.now()-W.totalStart-W.pauseTotal;var mins=Math.floor(dur/60000);var msg=rndFrom(T().finish).replace('MIN',''+mins);bark(msg);longBeep();setTimeout(function(){longBeep();},300);saveHistory({date:new Date().toISOString(),dur:dur,progName:W.progName,count:W.exercises.length});render();}
+function finishWorkout(){clearAllTimers();W.phase='finished';W.paused=false;stopAudioKeepAlive();releaseWakeLock();unlockScreen();var dur=Date.now()-W.totalStart-W.pauseTotal;var mins=Math.floor(dur/60000);var msg=rndFrom(T().finish).replace('MIN',''+mins);bark(msg);longBeep();setTimeout(function(){longBeep();},300);saveHistory({date:new Date().toISOString(),dur:dur,progName:W.progName,count:W.exercises.length});render();}
 function skipEx(){var ex=W.exercises[W.exIdx];var exSec=(ex.sec&&ex.sec>0)?ex.sec:W.workSec;if(W.mode==='work'){W.exDurs.push({name:ex.name,dur:0});if(W.exIdx>=W.exercises.length-1){finishWorkout();return;}W.mode='rest';W.timeLeft=W.restSec;if(!timer)timer=setInterval(tick,1000);bark(T().skip+' '+W.exercises[W.exIdx+1].name+'! '+T().prepare);}else if(W.mode==='rest'){W.exIdx++;var ex2=W.exercises[W.exIdx];var s2=(ex2.sec&&ex2.sec>0)?ex2.sec:W.workSec;W.mode='work';if(ex2.modeType==='reps'){clearAllTimers();speakExercise(ex2,0);longBeep();}else{W.timeLeft=s2;longBeep();speakExercise(ex2,s2);}}render();}
 
 /* EVENTS */
